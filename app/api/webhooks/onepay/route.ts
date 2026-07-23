@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isOnePaySuccessStatus, OnePayWebhookPayload } from "@/lib/onepay";
 import { releaseStock } from "@/lib/inventory";
+import { formatOrderNumber } from "@/lib/order-number";
+import { sendMail, renderOrderConfirmationEmail } from "@/lib/mail";
 
 /**
  * OnePay server-to-server payment notification.
@@ -63,6 +65,26 @@ export async function POST(req: NextRequest) {
       await releaseStock(tx, items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
     }
   });
+
+  if (success) {
+    const [items, user] = await Promise.all([
+      prisma.orderItem.findMany({ where: { orderId: order.id } }),
+      prisma.user.findUnique({ where: { id: order.userId }, select: { name: true, email: true } }),
+    ]);
+    if (user) {
+      await sendMail({
+        to: user.email,
+        subject: `Order Confirmed — ${formatOrderNumber(order.id)}`,
+        html: renderOrderConfirmationEmail({
+          name: user.name,
+          orderNumber: formatOrderNumber(order.id),
+          items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price.toString() })),
+          total: order.total.toString(),
+          shippingAddress: `${order.shippingLine1}, ${order.shippingCity}${order.shippingDistrict ? `, ${order.shippingDistrict}` : ""}`,
+        }),
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

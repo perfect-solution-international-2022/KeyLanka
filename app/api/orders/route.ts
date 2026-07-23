@@ -5,6 +5,8 @@ import { getUserId } from "@/lib/auth-server";
 import { InsufficientStockError, reserveStock } from "@/lib/inventory";
 import { getWholesaleMinQty } from "@/lib/queries";
 import { getUnitPrice } from "@/lib/pricing";
+import { formatOrderNumber } from "@/lib/order-number";
+import { sendMail, renderOrderConfirmationEmail } from "@/lib/mail";
 
 const createOrderSchema = z.object({
   shippingName: z.string().min(1),
@@ -87,6 +89,21 @@ export async function POST(req: NextRequest) {
 
       return created;
     });
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+    if (user) {
+      await sendMail({
+        to: user.email,
+        subject: `Order Confirmed — ${formatOrderNumber(order.id)}`,
+        html: renderOrderConfirmationEmail({
+          name: user.name,
+          orderNumber: formatOrderNumber(order.id),
+          items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price.toString() })),
+          total: order.total.toString(),
+          shippingAddress: `${order.shippingLine1}, ${order.shippingCity}${order.shippingDistrict ? `, ${order.shippingDistrict}` : ""}`,
+        }),
+      });
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (err) {

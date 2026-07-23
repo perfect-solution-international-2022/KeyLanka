@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import type { NextRequest } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -37,6 +38,30 @@ export function getUserId(req: NextRequest): number | null {
 export function requireAdmin(req: NextRequest): TokenPayload | null {
   const auth = getAuth(req);
   return auth?.role === "ADMIN" ? auth : null;
+}
+
+// Password-reset tokens are stateless JWTs (no extra DB table). A fingerprint
+// of the user's current passwordHash is embedded so the token is invalidated
+// the moment the password actually changes, even before its 1h expiry.
+function passwordFingerprint(passwordHash: string) {
+  return crypto.createHash("sha256").update(passwordHash).digest("hex").slice(0, 16);
+}
+
+export function signResetToken(userId: number, passwordHash: string) {
+  return jwt.sign({ userId, purpose: "reset", fp: passwordFingerprint(passwordHash) }, JWT_SECRET, {
+    expiresIn: "1h",
+  });
+}
+
+export function verifyResetToken(token: string, currentPasswordHash: string): number | null {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: number; purpose: string; fp: string };
+    if (payload.purpose !== "reset") return null;
+    if (payload.fp !== passwordFingerprint(currentPasswordHash)) return null;
+    return payload.userId;
+  } catch {
+    return null;
+  }
 }
 
 export function authCookieOptions() {
