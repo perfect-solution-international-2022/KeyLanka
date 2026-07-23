@@ -1,0 +1,28 @@
+import { notFound } from "next/navigation";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { ProductForm } from "@/components/admin/ProductForm";
+import { getCategories, getBrands } from "@/lib/queries";
+import { prisma } from "@/lib/prisma";
+import type { AdminProduct } from "@/lib/admin-api";
+
+function serialize<T>(data: unknown): T {
+  return JSON.parse(JSON.stringify(data));
+}
+
+export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const [product, categories, brands] = await Promise.all([
+    prisma.product.findUnique({ where: { id: Number(id) } }),
+    getCategories(),
+    getBrands(),
+  ]);
+
+  if (!product) notFound();
+
+  return (
+    <AdminShell title="Edit Product">
+      <h2 className="text-lg font-semibold mb-4">Edit Product</h2>
+      <ProductForm product={serialize<AdminProduct>(product)} categories={categories} brands={brands} />
+    </AdminShell>
+  );
+}

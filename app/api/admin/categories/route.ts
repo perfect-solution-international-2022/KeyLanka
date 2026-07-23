@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-server";
+
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+export async function GET(req: NextRequest) {
+  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const categories = await prisma.category.findMany({
+    include: { children: true, _count: { select: { products: true } } },
+    orderBy: { id: "asc" },
+  });
+  return NextResponse.json(categories);
+}
+
+const categorySchema = z.object({
+  name: z.string().min(1),
+  parentId: z.number().nullable().optional(),
+  image: z.string().nullable().optional(),
+});
+
+export async function POST(req: NextRequest) {
+  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = await req.json();
+  const parsed = categorySchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  const data = parsed.data;
+
+  let slug = slugify(data.name);
+  let suffix = 0;
+  while (await prisma.category.findUnique({ where: { slug } })) {
+    suffix += 1;
+    slug = `${slugify(data.name)}-${suffix}`;
+  }
+
+  const category = await prisma.category.create({
+    data: { name: data.name, slug, parentId: data.parentId ?? null, image: data.image || null },
+  });
+
+  return NextResponse.json(category, { status: 201 });
+}

@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  image       String?
+  parentId    Int?
+  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryToCategory")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+
+  @@index([parentId])
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  logo      String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id              Int        @id @default(autoincrement())
+  name            String
+  slug            String     @unique
+  sku             String     @unique
+  price           Decimal    @db.Decimal(10, 2)
+  compareAtPrice  Decimal?   @db.Decimal(10, 2)
+  wholesalePrice  Decimal?   @db.Decimal(10, 2)
+  stock           Int        @default(0)
+  rating          Decimal    @default(0) @db.Decimal(2, 1)
+  reviewCount     Int        @default(0)
+  badge           String?
+  description     String?    @db.Text
+  images          Json
+  attributes      Json?
+  productType     String?
+  categoryId      Int
+  category        Category   @relation(fields: [categoryId], references: [id])
+  brandId         Int?
+  brand           Brand?     @relation(fields: [brandId], references: [id])
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  orderItems      OrderItem[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+enum Role {
+  BUYER
+  ADMIN
+}
+
+model User {
+  id            Int        @id @default(autoincrement())
+  name          String
+  email         String     @unique
+  passwordHash  String
+  phone         String?
+  role          Role       @default(BUYER)
+  addresses     Address[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  orders        Order[]
+  createdAt     DateTime   @default(now())
+}
+
+model Address {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  fullName   String
+  line1      String
+  city       String
+  phone      String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CartItem {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  sessionId   String?
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
+}
+
+model WishlistItem {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  sessionId   String?
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  userId          Int
+  user            User        @relation(fields: [userId], references: [id])
+  status          String      @default("pending")
+  total           Decimal     @db.Decimal(10, 2)
+  shippingName    String
+  shippingLine1   String
+  shippingCity    String
+  shippingDistrict String   @default("")
+  shippingPostalCode String @default("")
+  shippingPhone   String
+  paymentMethod   String      @default("cod")
+  paid            Boolean     @default(false)
+  transactionId   String?     @unique
+  paymentStatusMessage String?
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  order      Order    @relation(fields: [orderId], references: [id])
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  name       String
+  price      Decimal  @db.Decimal(10, 2)
+  quantity   Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  description String   @db.Text
+  icon        String?
+  createdAt   DateTime @default(now())
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+// Singleton row (id always 1) holding store-wide configuration.
+model StoreSettings {
+  id              Int @id @default(1)
+  wholesaleMinQty Int @default(10)
+}

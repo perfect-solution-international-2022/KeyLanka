@@ -1,0 +1,260 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { CreditCard, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
+import { useAuth, useCart } from "@/app/providers";
+import { formatCurrency } from "@/lib/api";
+import { getUnitPrice, getLineTotal } from "@/lib/pricing";
+
+const SRI_LANKA_DISTRICTS = [
+  "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle",
+  "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle",
+  "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Monaragala",
+  "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura",
+  "Trincomalee", "Vavuniya",
+];
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <label className="block text-sm font-medium text-gray-700 mb-1.5">{children}</label>;
+}
+
+function TextField(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15"
+    />
+  );
+}
+
+export default function CheckoutPage() {
+  const auth = useAuth();
+  const cart = useCart();
+
+  const [shippingName, setShippingName] = useState("");
+
+  useEffect(() => {
+    if (auth.user?.name) setShippingName((prev) => prev || auth.user!.name);
+  }, [auth.user]);
+  const [shippingLine1, setShippingLine1] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingDistrict, setShippingDistrict] = useState("");
+  const [shippingPostalCode, setShippingPostalCode] = useState("");
+  const [shippingPhone, setShippingPhone] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (auth.loading || cart.loading) {
+    return <div className="container-page py-16 text-center text-gray-400">Loading...</div>;
+  }
+
+  if (!auth.user) {
+    return (
+      <div className="container-page py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Please login to checkout</h1>
+        <Link href="/account/login" className="bg-brand hover:bg-brand-dark text-white font-medium px-6 py-3 rounded-md">
+          Login
+        </Link>
+      </div>
+    );
+  }
+
+  if (cart.items.length === 0) {
+    return (
+      <div className="container-page py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h1>
+        <Link href="/shop" className="bg-brand hover:bg-brand-dark text-white font-medium px-6 py-3 rounded-md">
+          Continue Shopping
+        </Link>
+      </div>
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/checkout/onepay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shippingName,
+          shippingLine1,
+          shippingCity,
+          shippingDistrict,
+          shippingPostalCode,
+          shippingPhone,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not start OnePay checkout");
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not place order");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      <div className="border-b border-gray-100 bg-white py-4">
+        <div className="container-page flex items-center gap-1.5 text-sm text-gray-500">
+          <Link href="/cart" className="hover:text-brand">
+            Cart
+          </Link>
+          <ChevronRight size={14} />
+          <span className="text-gray-900 font-medium">Checkout</span>
+        </div>
+      </div>
+
+      <div className="container-page py-8 grid lg:grid-cols-[1fr_380px] gap-8 items-start">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>
+          )}
+
+          <section className="bg-white border border-gray-200 rounded-xl p-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="h-6 w-6 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center">
+                1
+              </span>
+              Shipping Details
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <FieldLabel>Full Name</FieldLabel>
+                <TextField required value={shippingName} onChange={(e) => setShippingName(e.target.value)} placeholder="Your full name" />
+              </div>
+              <div className="sm:col-span-2">
+                <FieldLabel>Address</FieldLabel>
+                <TextField
+                  required
+                  value={shippingLine1}
+                  onChange={(e) => setShippingLine1(e.target.value)}
+                  placeholder="Street address"
+                />
+              </div>
+              <div>
+                <FieldLabel>City</FieldLabel>
+                <TextField required value={shippingCity} onChange={(e) => setShippingCity(e.target.value)} placeholder="City" />
+              </div>
+              <div>
+                <FieldLabel>District</FieldLabel>
+                <select
+                  required
+                  value={shippingDistrict}
+                  onChange={(e) => setShippingDistrict(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15 bg-white"
+                >
+                  <option value="" disabled>
+                    Select district
+                  </option>
+                  {SRI_LANKA_DISTRICTS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel>Postal Code</FieldLabel>
+                <TextField
+                  required
+                  value={shippingPostalCode}
+                  onChange={(e) => setShippingPostalCode(e.target.value)}
+                  placeholder="e.g. 10250"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <FieldLabel>Phone</FieldLabel>
+                <TextField
+                  required
+                  value={shippingPhone}
+                  onChange={(e) => setShippingPhone(e.target.value)}
+                  placeholder="07X XXX XXXX"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-xl p-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="h-6 w-6 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center">
+                2
+              </span>
+              Payment Method
+            </h2>
+            <div className="flex items-center gap-3 border border-brand bg-brand-light rounded-xl p-4">
+              <div className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center shrink-0">
+                <CreditCard size={17} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-brand">Card / Mobile Wallet</div>
+                <div className="text-xs text-gray-500 mt-0.5">Pay securely via OnePay</div>
+              </div>
+            </div>
+          </section>
+
+          <button
+            disabled={loading}
+            className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-colors"
+          >
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {loading ? "Processing..." : "Continue to Payment"}
+          </button>
+          <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+            <ShieldCheck size={13} /> Secure checkout — your information is protected
+          </p>
+        </form>
+
+        <aside className="bg-white border border-gray-200 rounded-xl p-6 lg:sticky lg:top-24">
+          <h2 className="font-semibold text-gray-900 mb-4">Order Summary</h2>
+          <div className="space-y-3 mb-4 max-h-72 overflow-y-auto pr-1">
+            {cart.items.map((item) => (
+              <div key={item.id} className="flex items-center gap-3">
+                <div className="relative h-14 w-14 rounded-lg bg-gray-50 border border-gray-100 shrink-0 overflow-hidden">
+                  <Image
+                    src={item.product.images?.[0] ?? "/products/placeholder-1.svg"}
+                    alt={item.product.name}
+                    fill
+                    className="object-contain p-1.5"
+                  />
+                  <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-900 text-white text-[10px] flex items-center justify-center">
+                    {item.quantity}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-gray-900 line-clamp-1">{item.product.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {formatCurrency(getUnitPrice(item.product, item.quantity, cart.wholesaleMinQty))} each
+                  </div>
+                </div>
+                <div className="text-sm font-semibold text-gray-900 shrink-0">
+                  {formatCurrency(getLineTotal(item.product, item.quantity, cart.wholesaleMinQty))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-100 pt-4 space-y-2">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Subtotal</span>
+              <span>{formatCurrency(cart.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Shipping</span>
+              <span className="text-green-600 font-medium">Free</span>
+            </div>
+            <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-3">
+              <span>Total</span>
+              <span>{formatCurrency(cart.subtotal)}</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
