@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { X, Upload, Loader2 } from "lucide-react";
+import { X, Upload, Loader2, Pencil } from "lucide-react";
 
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
@@ -47,6 +47,8 @@ export function ImageUploader({
     }
   }
 
+  const showReplace = !multiple && images.length > 0;
+
   function removeAt(idx: number) {
     onChange(images.filter((_, i) => i !== idx));
   }
@@ -57,9 +59,24 @@ export function ImageUploader({
         {images.map((src, idx) => (
           <div key={src + idx} className="relative h-24 w-24 rounded-md border border-gray-200 bg-gray-50 overflow-hidden group">
             <Image src={src} alt="" fill className="object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+            {showReplace && (
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => inputRef.current?.click()}
+                aria-label="Replace image"
+                title="Replace image"
+                className="absolute inset-0 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+              >
+                {uploading ? <Loader2 size={20} className="animate-spin" /> : <Pencil size={20} />}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => removeAt(idx)}
+              aria-label="Remove image"
+              title="Remove image"
               className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <X size={12} />
