@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Eye } from "lucide-react";
 import { useAuth } from "@/app/providers";
@@ -18,6 +19,7 @@ interface OrderSummary {
 
 export default function AccountPage() {
   const auth = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
@@ -65,7 +67,8 @@ export default function AccountPage() {
         <button
           onClick={async () => {
             if (await confirmToast("Log out of your account?", { confirmLabel: "Log out" })) {
-              auth.logout();
+              await auth.logout();
+              router.push("/account/login");
             }
           }}
           className="text-sm text-gray-500 hover:text-brand"
