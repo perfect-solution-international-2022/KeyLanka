@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { adminApi, AdminOrder } from "@/lib/admin-api";
 import { formatCurrency } from "@/lib/api";
+import { formatOrderNumber } from "@/lib/order-number";
+import { confirmToast } from "@/lib/confirm-toast";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   pending: "secondary",
@@ -22,11 +25,19 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
   const [error, setError] = useState("");
 
   async function handleStatusChange(status: string) {
+    if (status === "cancelled") {
+      const confirmed = await confirmToast(`Cancel ${formatOrderNumber(order.id)}?`, {
+        confirmLabel: "Cancel Order",
+        description: "The customer's stock reservation will be released.",
+      });
+      if (!confirmed) return;
+    }
     setSaving(true);
     setError("");
     try {
       const updated = await adminApi.updateOrderStatus(order.id, status);
       setOrder(updated);
+      toast.success(status === "cancelled" ? "Order cancelled" : "Order accepted");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update status");

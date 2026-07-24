@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Pencil, Trash2, X, Lock } from "lucide-react";
 import { adminApi, AdminCategory } from "@/lib/admin-api";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { confirmToast } from "@/lib/confirm-toast";
 
 interface FormState {
   id: number | null;
@@ -53,8 +55,10 @@ export function CategoriesManager() {
     try {
       if (form.id) {
         await adminApi.updateCategory(form.id, payload);
+        toast.success("Category updated");
       } else {
         await adminApi.createCategory(payload);
+        toast.success("Category added");
       }
       setForm(EMPTY_FORM);
       await refresh();
@@ -76,11 +80,16 @@ export function CategoriesManager() {
     setError("");
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this category?")) return;
+  async function handleDelete(id: number, name: string) {
+    const confirmed = await confirmToast(`Delete "${name}"?`, {
+      confirmLabel: "Delete",
+      description: "This cannot be undone.",
+    });
+    if (!confirmed) return;
     setError("");
     try {
       await adminApi.deleteCategory(id);
+      toast.success("Category deleted");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -165,7 +174,7 @@ export function CategoriesManager() {
                     <Pencil size={14} />
                   </button>
                   <button
-                    onClick={() => handleDelete(cat.id)}
+                    onClick={() => handleDelete(cat.id, cat.name)}
                     className="h-7 w-7 flex items-center justify-center rounded hover:bg-destructive/10 text-destructive"
                   >
                     <Trash2 size={14} />
@@ -187,7 +196,7 @@ export function CategoriesManager() {
                             <Pencil size={14} />
                           </button>
                           <button
-                            onClick={() => handleDelete(sub.id)}
+                            onClick={() => handleDelete(sub.id, full.name)}
                             className="h-7 w-7 flex items-center justify-center rounded hover:bg-destructive/10 text-destructive"
                           >
                             <Trash2 size={14} />

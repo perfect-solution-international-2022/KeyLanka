@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -17,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Trash2, Pencil, Check } from "lucide-react";
 import { adminApi, AdminProduct } from "@/lib/admin-api";
 import { formatCurrency } from "@/lib/api";
+import { confirmToast } from "@/lib/confirm-toast";
+
+const PAGE_SIZE = 20;
 
 function StockCell({ product }: { product: AdminProduct }) {
   const router = useRouter();
@@ -88,6 +92,7 @@ function StockCell({ product }: { product: AdminProduct }) {
 export function ProductsTable({ products }: { products: AdminProduct[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -97,12 +102,24 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
     return products.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
   }, [products, search]);
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this product? This cannot be undone.")) return;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  async function handleDelete(id: number, name: string) {
+    const confirmed = await confirmToast(`Delete "${name}"?`, {
+      confirmLabel: "Delete",
+      description: "This cannot be undone.",
+    });
+    if (!confirmed) return;
     setDeletingId(id);
     setError("");
     try {
       await adminApi.deleteProduct(id);
+      toast.success("Product deleted");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -113,12 +130,17 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
 
   return (
     <div className="space-y-3">
-      <Input
-        placeholder="Search by name or SKU..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="max-w-xs h-9"
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Input
+          placeholder="Search by name or SKU..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs h-9"
+        />
+        <p className="text-sm text-muted-foreground">
+          {filtered.length === 0 ? "No products" : `Showing ${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length}`}
+        </p>
+      </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="rounded-lg border bg-card overflow-hidden">
         <Table>
@@ -134,7 +156,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((p) => (
+            {paged.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -174,7 +196,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                       <Pencil size={15} />
                     </Link>
                     <button
-                      onClick={() => handleDelete(p.id)}
+                      onClick={() => handleDelete(p.id, p.name)}
                       disabled={deletingId === p.id}
                       className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive disabled:opacity-50"
                     >
@@ -194,6 +216,27 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
           </TableBody>
         </Table>
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 text-sm">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="px-3 py-1.5 border rounded-md disabled:opacity-40 hover:bg-muted"
+          >
+            Prev
+          </button>
+          <span className="text-muted-foreground px-2">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="px-3 py-1.5 border rounded-md disabled:opacity-40 hover:bg-muted"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

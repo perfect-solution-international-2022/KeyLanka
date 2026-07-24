@@ -146,7 +146,10 @@ export default function Header({ categories }: { categories: Category[] }) {
               Become a Locksmith Merchant
             </Link>
           )}
-          <Link href="/account" className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-brand">
+          <Link
+            href={auth.user ? "/account" : "/account/login"}
+            className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-brand"
+          >
             <UserIcon />
             <span className="hidden sm:block text-[11px]">Account</span>
           </Link>

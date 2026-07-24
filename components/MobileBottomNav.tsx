@@ -3,19 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Heart, ShoppingBag, User } from "lucide-react";
-import { useCart, useWishlist } from "@/app/providers";
-
-const ITEMS = [
-  { href: "/", label: "Home", icon: Home, exact: true },
-  { href: "/wishlist", label: "Wish List", icon: Heart },
-  { href: "/cart", label: "Cart", icon: ShoppingBag },
-  { href: "/account", label: "Account", icon: User },
-];
+import { useAuth, useCart, useWishlist } from "@/app/providers";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const auth = useAuth();
   const cart = useCart();
   const wishlist = useWishlist();
+
+  const items = [
+    { href: "/", label: "Home", icon: Home, exact: true },
+    { href: "/wishlist", label: "Wish List", icon: Heart },
+    { href: "/cart", label: "Cart", icon: ShoppingBag },
+    { href: auth.user ? "/account" : "/account/login", label: "Account", icon: User },
+  ];
 
   const counts: Record<string, number> = {
     "/wishlist": wishlist.count,
@@ -24,7 +25,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 flex items-stretch pb-[env(safe-area-inset-bottom)]">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
         const count = counts[item.href];
         const Icon = item.icon;

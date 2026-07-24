@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 
 const HIGHLIGHTS = [
   "Track orders and reorder your favorite keys in seconds",
@@ -48,7 +49,13 @@ export default function AuthShell({
         </p>
       </div>
 
-      <div className="flex items-center justify-center px-6 py-12 sm:py-16">
+      <div className="relative flex items-center justify-center px-6 py-12 sm:py-16">
+        <Link
+          href="/"
+          className="absolute top-4 left-4 sm:top-6 sm:left-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand"
+        >
+          <ArrowLeft size={16} /> Back to Home
+        </Link>
         <div className="w-full max-w-sm">
           <Link href="/" className="lg:hidden flex items-center gap-2 mb-8 justify-center">
             <Image src="/logo-icon.png" alt="Key Lanka" width={44} height={44} className="h-11 w-11 object-contain" />

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { toast } from "sonner";
 import { Pencil, Trash2, X } from "lucide-react";
 import { adminApi, AdminBrand } from "@/lib/admin-api";
+import { confirmToast } from "@/lib/confirm-toast";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,8 +53,10 @@ export function BrandsManager() {
     try {
       if (form.id) {
         await adminApi.updateBrand(form.id, { name: form.name, logo: form.logo });
+        toast.success("Brand updated");
       } else {
         await adminApi.createBrand({ name: form.name, logo: form.logo });
+        toast.success("Brand added");
       }
       setForm(EMPTY_FORM);
       await refresh();
@@ -63,11 +67,16 @@ export function BrandsManager() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this brand?")) return;
+  async function handleDelete(id: number, name: string) {
+    const confirmed = await confirmToast(`Delete "${name}"?`, {
+      confirmLabel: "Delete",
+      description: "This cannot be undone.",
+    });
+    if (!confirmed) return;
     setError("");
     try {
       await adminApi.deleteBrand(id);
+      toast.success("Brand deleted");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -145,7 +154,7 @@ export function BrandsManager() {
                         <Pencil size={15} />
                       </button>
                       <button
-                        onClick={() => handleDelete(b.id)}
+                        onClick={() => handleDelete(b.id, b.name)}
                         className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive"
                       >
                         <Trash2 size={15} />

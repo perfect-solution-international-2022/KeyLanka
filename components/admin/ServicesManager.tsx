@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Pencil, Trash2, X, ChevronDown } from "lucide-react";
 import { adminApi, AdminService } from "@/lib/admin-api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SERVICE_ICON_OPTIONS, getIconByName } from "@/lib/service-icon-options";
+import { confirmToast } from "@/lib/confirm-toast";
 
 interface FormState {
   id: number | null;
@@ -106,8 +108,10 @@ export function ServicesManager() {
     try {
       if (form.id) {
         await adminApi.updateService(form.id, { title: form.title, description: form.description, icon: form.icon });
+        toast.success("Service updated");
       } else {
         await adminApi.createService({ title: form.title, description: form.description, icon: form.icon });
+        toast.success("Service added");
       }
       setForm(EMPTY_FORM);
       await refresh();
@@ -118,11 +122,16 @@ export function ServicesManager() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this service?")) return;
+  async function handleDelete(id: number, title: string) {
+    const confirmed = await confirmToast(`Delete "${title}"?`, {
+      confirmLabel: "Delete",
+      description: "This cannot be undone.",
+    });
+    if (!confirmed) return;
     setError("");
     try {
       await adminApi.deleteService(id);
+      toast.success("Service deleted");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -193,7 +202,7 @@ export function ServicesManager() {
                   <Pencil size={15} />
                 </button>
                 <button
-                  onClick={() => handleDelete(s.id)}
+                  onClick={() => handleDelete(s.id, s.title)}
                   className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive"
                 >
                   <Trash2 size={15} />

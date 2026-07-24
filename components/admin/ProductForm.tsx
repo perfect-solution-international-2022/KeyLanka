@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { adminApi, AdminProduct, AdminProductInput, AdminCategory, AdminBrand } from "@/lib/admin-api";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -76,8 +77,10 @@ export function ProductForm({
     try {
       if (isEdit && product) {
         await adminApi.updateProduct(product.id, payload);
+        toast.success("Product updated");
       } else {
         await adminApi.createProduct(payload);
+        toast.success("Product created");
       }
       router.push("/admin/products");
       router.refresh();
