@@ -150,10 +150,13 @@ async function main() {
   }
 
   console.log("Seeding brands...");
+  const BRAND_LOGO_OVERRIDES: Record<string, string> = { Peugeot: "peugeot.png" };
   const brandIdMap = new Map<string, number>();
   for (const b of BRANDS) {
+    const slug = slugify(b);
+    const logoFile = BRAND_LOGO_OVERRIDES[b] ?? `${slug}.svg`;
     const brand = await prisma.brand.create({
-      data: { name: b, slug: slugify(b) },
+      data: { name: b, slug, logo: `/brands/${logoFile}` },
     });
     brandIdMap.set(b, brand.id);
   }
