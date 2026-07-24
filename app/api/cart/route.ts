@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getUserId } from "@/lib/auth-server";
+import { getUserId, getAuth } from "@/lib/auth-server";
+import { isAuthLocksmithAuthorized } from "@/lib/queries";
 
 function scopeFilter(req: NextRequest) {
   const userId = getUserId(req);
@@ -35,6 +36,12 @@ export async function POST(req: NextRequest) {
 
   const scope = scopeFilter(req);
   if (!scope) return NextResponse.json({ error: "Missing session" }, { status: 400 });
+
+  const product = await prisma.product.findUnique({ where: { id: productId }, include: { category: true } });
+  if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  if (product.category.restricted && !(await isAuthLocksmithAuthorized(getAuth(req)))) {
+    return NextResponse.json({ error: "This product is restricted to approved Locksmith Merchants" }, { status: 403 });
+  }
 
   const existing = await prisma.cartItem.findFirst({ where: { ...scope, productId } });
   let item;

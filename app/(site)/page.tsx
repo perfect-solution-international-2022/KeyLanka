@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategories, getBrands } from "@/lib/queries";
+import { getCategories, getBrands, isServerLocksmithAuthorized } from "@/lib/queries";
 import CategoryTile from "@/components/CategoryTile";
 import BrandStrip from "@/components/BrandStrip";
 
@@ -106,9 +106,10 @@ const SERVICE_ICONS = [
 ];
 
 export default async function HomePage() {
-  const [categories, brands] = await Promise.all([
+  const [categories, brands, locksmithAuthorized] = await Promise.all([
     getCategories().catch(() => []),
     getBrands().catch(() => []),
+    isServerLocksmithAuthorized().catch(() => false),
   ]);
 
   return (
@@ -165,7 +166,13 @@ export default async function HomePage() {
         <p className="text-gray-500 text-sm mb-6">Explore our wide range of products</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
           {categories.map((cat) => (
-            <CategoryTile key={cat.id} name={cat.name} slug={cat.slug} image={cat.image} />
+            <CategoryTile
+              key={cat.id}
+              name={cat.name}
+              slug={cat.slug}
+              image={cat.image}
+              locked={cat.restricted && !locksmithAuthorized}
+            />
           ))}
           <CategoryTile name="Vehicle Brands" slug="vehicle-brands" href="/brands" image="/vehicle-brands.jpeg" />
           <CategoryTile name="Services" slug="services" href="/services" image="/services.jpeg" />

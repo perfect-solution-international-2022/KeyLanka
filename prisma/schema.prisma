@@ -12,6 +12,7 @@ model Category {
   name        String
   slug        String     @unique
   image       String?
+  restricted  Boolean    @default(false)
   parentId    Int?
   parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryToCategory")
@@ -72,11 +73,33 @@ model User {
   passwordHash  String
   phone         String?
   role          Role       @default(BUYER)
+  locksmithStatus String?  // null | "pending" | "approved" | "rejected"
+  locksmithApplication LocksmithApplication?
   addresses     Address[]
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
   orders        Order[]
   createdAt     DateTime   @default(now())
+}
+
+model LocksmithApplication {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  user            User      @relation(fields: [userId], references: [id])
+  fullName        String
+  mobileNumber    String
+  email           String
+  businessName    String
+  businessRegDocs Json
+  nationalIdFront String
+  nationalIdBack  String
+  address         String    @db.Text
+  utilityBillDoc  String
+  status          String    @default("pending")
+  rejectionReason String?   @db.Text
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Address {

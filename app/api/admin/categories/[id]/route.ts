@@ -8,6 +8,7 @@ const updateSchema = z.object({
   name: z.string().min(1),
   parentId: z.number().nullable().optional(),
   image: z.string().nullable().optional(),
+  restricted: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,9 +24,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "A category cannot be its own parent" }, { status: 400 });
   }
 
-  const category = await prisma.category.update({
-    where: { id: Number(id) },
-    data: { name: data.name, parentId: data.parentId ?? null, image: data.image || null },
+  const category = await prisma.$transaction(async (tx) => {
+    const updated = await tx.category.update({
+      where: { id: Number(id) },
+      data: {
+        name: data.name,
+        parentId: data.parentId ?? null,
+        image: data.image || null,
+        ...(data.restricted !== undefined ? { restricted: data.restricted } : {}),
+      },
+    });
+    // Products only carry their direct category, so a "restricted" flag on a
+    // top-level category has to cascade to its children for product listings
+    // and category pages to actually enforce it for subcategories too.
+    if (data.restricted !== undefined) {
+      await tx.category.updateMany({ where: { parentId: updated.id }, data: { restricted: data.restricted } });
+    }
+    return updated;
   });
 
   return NextResponse.json(category);

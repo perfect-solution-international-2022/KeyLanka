@@ -47,8 +47,14 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 py-4 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} Key Lanka. All rights reserved.
+      <div className="border-t border-gray-800 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-500">
+        <span>© {new Date().getFullYear()} Key Lanka. All rights reserved.</span>
+        <span className="hidden sm:inline">·</span>
+        <div className="flex items-center gap-4">
+          <Link href="/terms" className="hover:text-brand">Terms &amp; Conditions</Link>
+          <Link href="/privacy-policy" className="hover:text-brand">Privacy Policy</Link>
+          <Link href="/refund-policy" className="hover:text-brand">No Return &amp; No Refund Policy</Link>
+        </div>
       </div>
     </footer>
   );

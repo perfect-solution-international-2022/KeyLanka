@@ -24,6 +24,7 @@ const categorySchema = z.object({
   name: z.string().min(1),
   parentId: z.number().nullable().optional(),
   image: z.string().nullable().optional(),
+  restricted: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -41,8 +42,23 @@ export async function POST(req: NextRequest) {
     slug = `${slugify(data.name)}-${suffix}`;
   }
 
+  // A new subcategory inherits its parent's restriction by default, so it
+  // doesn't accidentally leak locksmith-only products through an unrestricted
+  // subcategory.
+  let restricted = data.restricted ?? false;
+  if (data.parentId && data.restricted === undefined) {
+    const parent = await prisma.category.findUnique({ where: { id: data.parentId }, select: { restricted: true } });
+    restricted = parent?.restricted ?? false;
+  }
+
   const category = await prisma.category.create({
-    data: { name: data.name, slug, parentId: data.parentId ?? null, image: data.image || null },
+    data: {
+      name: data.name,
+      slug,
+      parentId: data.parentId ?? null,
+      image: data.image || null,
+      restricted,
+    },
   });
 
   return NextResponse.json(category, { status: 201 });

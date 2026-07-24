@@ -5,6 +5,7 @@ export interface Category {
   name: string;
   slug: string;
   image: string | null;
+  restricted: boolean;
   parentId: number | null;
   children?: Category[];
 }
@@ -69,6 +70,29 @@ export interface WishlistItem {
 }
 
 export type Role = "BUYER" | "ADMIN";
+export type LocksmithStatus = "pending" | "approved" | "rejected" | "disabled" | null;
+
+export interface LocksmithApplication {
+  id: number;
+  userId: number;
+  fullName: string;
+  mobileNumber: string;
+  email: string;
+  businessName: string;
+  businessRegDocs: string[];
+  nationalIdFront: string;
+  nationalIdBack: string;
+  address: string;
+  utilityBillDoc: string;
+  status: "pending" | "approved" | "rejected" | "disabled";
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+export type LocksmithApplicationInput = Omit<
+  LocksmithApplication,
+  "id" | "userId" | "status" | "rejectionReason" | "createdAt"
+>;
 
 export interface AuthUser {
   id: number;
@@ -76,6 +100,7 @@ export interface AuthUser {
   email: string;
   phone?: string | null;
   role: Role;
+  locksmithStatus?: LocksmithStatus;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -164,6 +189,11 @@ export const api = {
   forgotPassword: (email: string) => request("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
   resetPassword: (token: string, password: string) =>
     request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) }),
+
+  // locksmith merchant application
+  getMyLocksmithApplication: () => request<LocksmithApplication | null>("/locksmith/apply"),
+  applyLocksmith: (data: LocksmithApplicationInput) =>
+    request<LocksmithApplication>("/locksmith/apply", { method: "POST", body: JSON.stringify(data) }),
 
   // orders
   getOrders: () => request<any[]>("/orders"),

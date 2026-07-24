@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import { CreditCard, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
 import { useAuth, useCart } from "@/app/providers";
 import { formatCurrency } from "@/lib/api";
 import { getUnitPrice, getLineTotal } from "@/lib/pricing";
+import { LegalPolicyLink } from "@/components/legal/LegalPolicyLink";
+import { LegalPolicyDialog, type LegalPolicy } from "@/components/legal/LegalPolicyDialog";
 
 const SRI_LANKA_DISTRICTS = [
   "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle",
@@ -45,6 +48,8 @@ export default function CheckoutPage() {
   const [shippingPhone, setShippingPhone] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [openPolicy, setOpenPolicy] = useState<LegalPolicy>(null);
 
   if (auth.loading || cart.loading) {
     return <div className="container-page py-16 text-center text-gray-400">Loading...</div>;
@@ -74,6 +79,12 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!agreed) {
+      toast.error("Please agree to the Terms & Conditions to continue", {
+        description: "Check the box confirming you've read our policies and your vehicle details are accurate.",
+      });
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -198,6 +209,24 @@ export default function CheckoutPage() {
               </div>
             </div>
           </section>
+
+          <label className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600 leading-relaxed cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
+            />
+            <span>
+              I have read and agree to the{" "}
+              <LegalPolicyLink onOpen={() => setOpenPolicy("terms")}>Terms &amp; Conditions</LegalPolicyLink>,{" "}
+              <LegalPolicyLink onOpen={() => setOpenPolicy("privacy")}>Privacy Policy</LegalPolicyLink>,{" "}
+              <LegalPolicyLink onOpen={() => setOpenPolicy("refund")}>No Return &amp; No Refund Policy</LegalPolicyLink>,
+              and confirm that the vehicle information I have provided is accurate.
+            </span>
+          </label>
+
+          <LegalPolicyDialog policy={openPolicy} onClose={() => setOpenPolicy(null)} />
 
           <button
             disabled={loading}

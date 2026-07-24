@@ -4,9 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Menu, ChevronRight } from "lucide-react";
+import { Menu, ChevronRight, ShieldCheck, Clock, Lock } from "lucide-react";
 import type { Category } from "@/lib/api";
 import { useAuth, useCart, useWishlist } from "@/app/providers";
+import { isLocksmithAuthorized } from "@/lib/locksmith";
 import CategoryMegaMenu from "./CategoryMegaMenu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
@@ -113,13 +114,36 @@ export default function Header({ categories }: { categories: Category[] }) {
           </button>
         </form>
 
-        <div className="flex items-center gap-3 sm:gap-5 ml-auto text-sm">
+        <div className="hidden md:flex items-center gap-3 sm:gap-5 ml-auto text-sm">
           {auth.user?.role === "ADMIN" && (
             <Link
               href="/admin/dashboard"
               className="hidden sm:inline-block text-xs font-medium border border-brand text-brand rounded px-2.5 py-1.5 hover:bg-brand-light"
             >
               Admin
+            </Link>
+          )}
+          {auth.user && auth.user.locksmithStatus === "approved" && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium border border-green-200 bg-green-50 text-green-700 rounded px-2.5 py-1.5">
+              <ShieldCheck size={13} /> Approved Locksmith
+            </span>
+          )}
+          {auth.user && auth.user.locksmithStatus === "pending" && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium border border-yellow-200 bg-yellow-50 text-yellow-700 rounded px-2.5 py-1.5">
+              <Clock size={13} /> Application Pending
+            </span>
+          )}
+          {auth.user && auth.user.locksmithStatus === "disabled" && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium border border-gray-300 bg-gray-50 text-gray-600 rounded px-2.5 py-1.5">
+              <ShieldCheck size={13} /> Locksmith Access Disabled
+            </span>
+          )}
+          {auth.user && (auth.user.locksmithStatus == null || auth.user.locksmithStatus === "rejected") && (
+            <Link
+              href="/account/become-locksmith"
+              className="hidden sm:inline-block text-xs font-medium border border-gray-300 text-gray-700 rounded px-2.5 py-1.5 hover:border-brand hover:text-brand"
+            >
+              Become a Locksmith Merchant
             </Link>
           )}
           <Link href="/account" className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-brand">
@@ -229,16 +253,26 @@ export default function Header({ categories }: { categories: Category[] }) {
             </button>
             {mobileCategoriesOpen && (
               <div className="bg-gray-50 py-1">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={`/category/${cat.slug}`}
-                    onClick={() => setMobileOpen(false)}
-                    className="block px-6 py-2 text-sm text-gray-600 hover:text-brand"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+                {categories.map((cat) => {
+                  const locked = cat.restricted && !isLocksmithAuthorized(auth.user);
+                  return locked ? (
+                    <span
+                      key={cat.id}
+                      className="flex items-center gap-1.5 px-6 py-2 text-sm text-gray-400"
+                    >
+                      <Lock size={12} /> {cat.name}
+                    </span>
+                  ) : (
+                    <Link
+                      key={cat.id}
+                      href={`/category/${cat.slug}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="block px-6 py-2 text-sm text-gray-600 hover:text-brand"
+                    >
+                      {cat.name}
+                    </Link>
+                  );
+                })}
                 <Link
                   href="/brands"
                   onClick={() => setMobileOpen(false)}
@@ -267,6 +301,31 @@ export default function Header({ categories }: { categories: Category[] }) {
                 className="px-4 py-3 text-brand font-medium"
               >
                 Admin Dashboard
+              </Link>
+            )}
+
+            {auth.user && auth.user.locksmithStatus === "approved" && (
+              <div className="flex items-center gap-1.5 px-4 py-3 text-green-700 font-medium">
+                <ShieldCheck size={15} /> Approved Locksmith Merchant
+              </div>
+            )}
+            {auth.user && auth.user.locksmithStatus === "pending" && (
+              <div className="flex items-center gap-1.5 px-4 py-3 text-yellow-700 font-medium">
+                <Clock size={15} /> Application Pending
+              </div>
+            )}
+            {auth.user && auth.user.locksmithStatus === "disabled" && (
+              <div className="flex items-center gap-1.5 px-4 py-3 text-gray-500 font-medium">
+                <ShieldCheck size={15} /> Locksmith Access Disabled
+              </div>
+            )}
+            {auth.user && (auth.user.locksmithStatus == null || auth.user.locksmithStatus === "rejected") && (
+              <Link
+                href="/account/become-locksmith"
+                onClick={() => setMobileOpen(false)}
+                className="px-4 py-3 text-brand font-medium"
+              >
+                Become a Locksmith Merchant
               </Link>
             )}
           </nav>

@@ -25,7 +25,13 @@ export async function POST(req: NextRequest) {
   const sessionId = req.headers.get("x-session-id");
   await mergeGuestData(sessionId, user.id);
 
-  const res = NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+  const res = NextResponse.json({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    locksmithStatus: user.locksmithStatus,
+  });
   res.cookies.set(COOKIE_NAME, signToken({ userId: user.id, role: user.role }), authCookieOptions());
   return res;
 }

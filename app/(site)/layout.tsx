@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import { getCategories } from "@/lib/queries";
 import type { Category } from "@/lib/api";
 
@@ -16,10 +17,11 @@ export default async function SiteLayout({
   }
 
   return (
-    <div className="light flex min-h-screen flex-col bg-background text-foreground">
+    <div className="light flex min-h-screen flex-col bg-background text-foreground pb-16 md:pb-0">
       <Header categories={categories} />
       <main className="flex-1">{children}</main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

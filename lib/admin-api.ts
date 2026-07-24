@@ -41,6 +41,7 @@ export interface AdminCategory {
   name: string;
   slug: string;
   image: string | null;
+  restricted: boolean;
   parentId: number | null;
   children?: AdminCategory[];
   _count?: { products: number };
@@ -106,6 +107,23 @@ export interface AdminUserInput {
   role: "BUYER" | "ADMIN";
 }
 
+export interface AdminLocksmithApplication {
+  id: number;
+  fullName: string;
+  mobileNumber: string;
+  email: string;
+  businessName: string;
+  businessRegDocs: string[];
+  nationalIdFront: string;
+  nationalIdBack: string;
+  address: string;
+  utilityBillDoc: string;
+  status: "pending" | "approved" | "rejected" | "disabled";
+  rejectionReason: string | null;
+  createdAt: string;
+  user: { id: number; name: string; email: string };
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api/admin${path}`, {
     ...options,
@@ -132,9 +150,9 @@ export const adminApi = {
 
   // categories
   getCategories: () => request<AdminCategory[]>("/categories"),
-  createCategory: (data: { name: string; parentId?: number | null; image?: string | null }) =>
+  createCategory: (data: { name: string; parentId?: number | null; image?: string | null; restricted?: boolean }) =>
     request<AdminCategory>("/categories", { method: "POST", body: JSON.stringify(data) }),
-  updateCategory: (id: number, data: { name: string; parentId?: number | null; image?: string | null }) =>
+  updateCategory: (id: number, data: { name: string; parentId?: number | null; image?: string | null; restricted?: boolean }) =>
     request<AdminCategory>(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteCategory: (id: number) => request(`/categories/${id}`, { method: "DELETE" }),
 
@@ -171,4 +189,12 @@ export const adminApi = {
   getSettings: () => request<{ id: number; wholesaleMinQty: number }>("/settings"),
   updateSettings: (data: { wholesaleMinQty: number }) =>
     request<{ id: number; wholesaleMinQty: number }>("/settings", { method: "PATCH", body: JSON.stringify(data) }),
+
+  // locksmith merchant applications
+  getLocksmithApplications: () => request<AdminLocksmithApplication[]>("/locksmith-applications"),
+  updateLocksmithApplicationStatus: (id: number, status: "approved" | "rejected" | "disabled", rejectionReason?: string) =>
+    request<AdminLocksmithApplication>(`/locksmith-applications/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, rejectionReason }),
+    }),
 };

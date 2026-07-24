@@ -1,6 +1,23 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
+import { getServerAuth } from "./auth-server";
 import type { Category, Brand, Product, Service, ProductListResponse } from "./api";
+
+// Server Component equivalent of isLocksmithAuthorized() in lib/locksmith.ts —
+// reads the auth cookie via next/headers instead of an AuthUser object.
+export async function isServerLocksmithAuthorized(): Promise<boolean> {
+  const auth = await getServerAuth();
+  return isAuthLocksmithAuthorized(auth);
+}
+
+// Same check, but for Route Handlers that already have a decoded auth payload
+// (from getAuth(req)) instead of reading cookies via next/headers.
+export async function isAuthLocksmithAuthorized(auth: { userId: number; role: string } | null): Promise<boolean> {
+  if (!auth) return false;
+  if (auth.role === "ADMIN") return true;
+  const user = await prisma.user.findUnique({ where: { id: auth.userId }, select: { locksmithStatus: true } });
+  return user?.locksmithStatus === "approved";
+}
 
 // Server Components can only pass plain serializable data to Client Components.
 // Prisma returns Decimal/Date instances for price/rating/timestamp fields, so we
@@ -53,12 +70,16 @@ export interface ProductQueryParams {
   limit?: string;
 }
 
-export async function getProducts(params: ProductQueryParams) {
+export async function getProducts(params: ProductQueryParams, options?: { locksmithAuthorized?: boolean }) {
   const { category, brand, minPrice, maxPrice, productType, search, sort = "popularity", page = "1", limit = "12" } = params;
 
   const where: Prisma.ProductWhereInput = {};
 
-  if (category) where.category = { slug: { in: category.split(",") } };
+  const categoryFilter: Prisma.CategoryWhereInput = {};
+  if (category) categoryFilter.slug = { in: category.split(",") };
+  if (!options?.locksmithAuthorized) categoryFilter.restricted = false;
+  if (Object.keys(categoryFilter).length) where.category = categoryFilter;
+
   if (brand) where.brand = { slug: { in: brand.split(",") } };
   if (productType) where.productType = { in: productType.split(",") };
   if (minPrice || maxPrice) {

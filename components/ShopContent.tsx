@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Lock } from "lucide-react";
 import { api, Category, Brand, Product } from "@/lib/api";
+import { useAuth } from "@/app/providers";
+import { isLocksmithAuthorized } from "@/lib/locksmith";
 import ProductCard from "./ProductCard";
 
 const PRODUCT_TYPES = ["Smart Keys", "Remote Keys", "Key Shells", "Key Blanks", "Transponders"];
@@ -16,6 +19,8 @@ export default function ShopContent({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const auth = useAuth();
+  const authorized = isLocksmithAuthorized(auth.user);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -104,22 +109,36 @@ export default function ShopContent({
         <div>
           <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
           <ul className="space-y-1 text-sm">
-            {categories.map((c) => (
-              <li key={c.id}>
-                <button
-                  onClick={() =>
-                    fixedCategorySlug
-                      ? router.push(`/category/${c.slug}`)
-                      : updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)))
-                  }
-                  className={`flex items-center justify-between w-full text-left px-1 py-1 rounded hover:text-brand ${
-                    categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
-                  }`}
-                >
-                  {c.name} <span className="text-gray-300">›</span>
-                </button>
-              </li>
-            ))}
+            {categories.map((c) => {
+              const locked = c.restricted && !authorized;
+              return (
+                <li key={c.id}>
+                  {locked ? (
+                    <span
+                      className="flex items-center justify-between w-full px-1 py-1 rounded text-gray-300 cursor-not-allowed"
+                      title="Restricted to approved Locksmith Merchants"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Lock size={11} /> {c.name}
+                      </span>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        fixedCategorySlug
+                          ? router.push(`/category/${c.slug}`)
+                          : updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)))
+                      }
+                      className={`flex items-center justify-between w-full text-left px-1 py-1 rounded hover:text-brand ${
+                        categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
+                      }`}
+                    >
+                      {c.name} <span className="text-gray-300">›</span>
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 

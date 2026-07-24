@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/api";
@@ -36,6 +38,7 @@ export default async function AdminCustomersPage() {
               <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Total Spent</TableHead>
               <TableHead className="text-right">Joined</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -55,11 +58,19 @@ export default async function AdminCustomersPage() {
                 <TableCell className="text-right text-muted-foreground">
                   {c.createdAt.toLocaleDateString()}
                 </TableCell>
+                <TableCell className="text-right">
+                  <Link
+                    href={`/admin/customers/${c.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-md px-2.5 py-1.5 hover:bg-muted"
+                  >
+                    <Eye size={13} /> View
+                  </Link>
+                </TableCell>
               </TableRow>
             ))}
             {customers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No customers yet.
                 </TableCell>
               </TableRow>

@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# user-uploaded KYC documents (national IDs, business registration docs,
+# utility bills) — personal data, never commit these
+/public/uploads/locksmith-*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

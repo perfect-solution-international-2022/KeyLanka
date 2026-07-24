@@ -17,6 +17,7 @@ export function NavMain({
     title: string
     url: string
     icon?: React.ReactNode
+    badge?: number
   }[]
 }) {
   const pathname = usePathname()
@@ -34,7 +35,12 @@ export function NavMain({
                 className="h-10 text-[15px] [&_svg]:size-[18px]"
               >
                 {item.icon}
-                <span>{item.title}</span>
+                <span className="flex-1">{item.title}</span>
+                {!!item.badge && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-white">
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

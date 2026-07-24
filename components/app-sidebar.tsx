@@ -28,6 +28,7 @@ import {
   StoreIcon,
   Settings2Icon,
   BarChart3Icon,
+  KeyRoundIcon,
 } from "lucide-react"
 
 const data = {
@@ -36,17 +37,6 @@ const data = {
     email: "dkranga@yahoo.com",
     avatar: "",
   },
-  navMain: [
-    { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
-    { title: "Products", url: "/admin/products", icon: <PackageIcon /> },
-    { title: "Categories", url: "/admin/categories", icon: <FolderTreeIcon /> },
-    { title: "Brands", url: "/admin/brands", icon: <TagIcon /> },
-    { title: "Services", url: "/admin/services", icon: <WrenchIcon /> },
-    { title: "Orders", url: "/admin/orders", icon: <ShoppingCartIcon /> },
-    { title: "Customers", url: "/admin/customers", icon: <UsersIcon /> },
-    { title: "Accounts", url: "/admin/accounts", icon: <UserCogIcon /> },
-    { title: "Reports", url: "/admin/reports", icon: <BarChart3Icon /> },
-  ],
   navSecondary: [
     { title: "Wholesale Settings", url: "/admin/settings", icon: <Settings2Icon /> },
     { title: "View Store", url: "/", icon: <StoreIcon /> },
@@ -54,6 +44,39 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [badgeCounts, setBadgeCounts] = React.useState({ pendingOrders: 0, pendingLocksmith: 0 })
+
+  React.useEffect(() => {
+    let cancelled = false
+    function load() {
+      fetch("/api/admin/badge-counts")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d && !cancelled) setBadgeCounts(d)
+        })
+        .catch(() => {})
+    }
+    load()
+    const interval = setInterval(load, 30000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  const navMain = [
+    { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
+    { title: "Products", url: "/admin/products", icon: <PackageIcon /> },
+    { title: "Categories", url: "/admin/categories", icon: <FolderTreeIcon /> },
+    { title: "Brands", url: "/admin/brands", icon: <TagIcon /> },
+    { title: "Services", url: "/admin/services", icon: <WrenchIcon /> },
+    { title: "Orders", url: "/admin/orders", icon: <ShoppingCartIcon />, badge: badgeCounts.pendingOrders },
+    { title: "Customers", url: "/admin/customers", icon: <UsersIcon /> },
+    { title: "Accounts", url: "/admin/accounts", icon: <UserCogIcon /> },
+    { title: "Locksmith KYC", url: "/admin/locksmith", icon: <KeyRoundIcon />, badge: badgeCounts.pendingLocksmith },
+    { title: "Reports", url: "/admin/reports", icon: <BarChart3Icon /> },
+  ]
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -70,7 +93,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

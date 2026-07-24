@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, X } from "lucide-react";
+import { Pencil, Trash2, X, Lock } from "lucide-react";
 import { adminApi, AdminCategory } from "@/lib/admin-api";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface FormState {
   id: number | null;
   name: string;
   parentId: string;
   image: string | null;
+  restricted: boolean;
 }
 
-const EMPTY_FORM: FormState = { id: null, name: "", parentId: "", image: null };
+const EMPTY_FORM: FormState = { id: null, name: "", parentId: "", image: null, restricted: false };
 
 export function CategoriesManager() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
@@ -46,6 +48,7 @@ export function CategoriesManager() {
       name: form.name,
       parentId: form.parentId ? Number(form.parentId) : null,
       image: form.image,
+      restricted: form.restricted,
     };
     try {
       if (form.id) {
@@ -63,7 +66,13 @@ export function CategoriesManager() {
   }
 
   function startEdit(c: AdminCategory) {
-    setForm({ id: c.id, name: c.name, parentId: c.parentId ? String(c.parentId) : "", image: c.image });
+    setForm({
+      id: c.id,
+      name: c.name,
+      parentId: c.parentId ? String(c.parentId) : "",
+      image: c.image,
+      restricted: c.restricted,
+    });
     setError("");
   }
 
@@ -116,6 +125,15 @@ export function CategoriesManager() {
           <Label className="mb-2 block">Image</Label>
           <ImageUploader images={form.image ? [form.image] : []} onChange={(imgs) => setForm((f) => ({ ...f, image: imgs[0] ?? null }))} />
         </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.restricted}
+            onChange={(e) => setForm((f) => ({ ...f, restricted: e.target.checked }))}
+            className="h-4 w-4 accent-brand"
+          />
+          Restricted to approved Locksmith Merchants
+        </label>
         <button
           disabled={saving}
           className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-medium py-2 rounded-md text-sm"
@@ -136,6 +154,11 @@ export function CategoriesManager() {
                   <span className="text-xs text-muted-foreground">
                     {cat._count?.products ?? 0} products
                   </span>
+                  {cat.restricted && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Lock size={10} /> Locksmith Only
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => startEdit(cat)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted">

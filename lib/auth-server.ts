@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import type { NextRequest } from "next/server";
+import { cookies } from "next/headers";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const COOKIE_NAME = "token";
@@ -38,6 +39,15 @@ export function getUserId(req: NextRequest): number | null {
 export function requireAdmin(req: NextRequest): TokenPayload | null {
   const auth = getAuth(req);
   return auth?.role === "ADMIN" ? auth : null;
+}
+
+// For use in Server Components, which don't have a NextRequest — reads the
+// auth cookie via next/headers instead.
+export async function getServerAuth(): Promise<TokenPayload | null> {
+  const store = await cookies();
+  const token = store.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+  return verifyToken(token);
 }
 
 // Password-reset tokens are stateless JWTs (no extra DB table). A fingerprint
