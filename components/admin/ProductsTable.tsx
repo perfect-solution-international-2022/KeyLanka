@@ -143,11 +143,18 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium truncate max-w-[220px]">{p.name}</div>
-                      {p.badge && (
-                        <Badge variant="secondary" className="mt-0.5 text-[10px]">
-                          {p.badge}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {p.badge && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {p.badge}
+                          </Badge>
+                        )}
+                        {p.featured && (
+                          <Badge variant="default" className="text-[10px]">
+                            Featured
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </TableCell>

@@ -89,6 +89,12 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+html {
+  /* Stops iOS/Android rubber-band overscroll from revealing page background
+     above/below fixed elements like the mobile bottom nav bar. */
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

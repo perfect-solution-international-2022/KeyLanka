@@ -112,6 +112,19 @@ export async function getProducts(params: ProductQueryParams, options?: { locksm
   return serialize<ProductListResponse>({ items, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) });
 }
 
+export async function getFeaturedProducts(limit = 8, options?: { locksmithAuthorized?: boolean }) {
+  const where: Prisma.ProductWhereInput = { featured: true };
+  if (!options?.locksmithAuthorized) where.category = { restricted: false };
+
+  const products = await prisma.product.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: { category: true, brand: true },
+  });
+  return serialize<Product[]>(products);
+}
+
 export async function getProductBySlug(slug: string) {
   const product = await prisma.product.findUnique({
     where: { slug },

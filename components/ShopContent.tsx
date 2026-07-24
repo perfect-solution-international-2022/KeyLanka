@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock } from "lucide-react";
+import { Lock, SlidersHorizontal } from "lucide-react";
 import { api, Category, Brand, Product } from "@/lib/api";
 import { useAuth } from "@/app/providers";
 import { isLocksmithAuthorized } from "@/lib/locksmith";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ProductCard from "./ProductCard";
 
 const PRODUCT_TYPES = ["Smart Keys", "Remote Keys", "Key Shells", "Key Blanks", "Transponders"];
@@ -29,6 +30,7 @@ export default function ShopContent({
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const search = searchParams.get("search") ?? "";
   const selectedBrands = useMemo(() => (searchParams.get("brand")?.split(",").filter(Boolean) ?? []), [searchParams]);
@@ -39,6 +41,9 @@ export default function ShopContent({
   const page = Number(searchParams.get("page") ?? "1");
   const categorySlug = fixedCategorySlug ?? searchParams.get("category") ?? "";
   const brandSlug = fixedBrandSlug ?? "";
+
+  const activeFilterCount =
+    (categorySlug && !fixedCategorySlug ? 1 : 0) + selectedBrands.length + selectedTypes.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => setCategories([]));
@@ -103,111 +108,137 @@ export default function ShopContent({
   const from = total === 0 ? 0 : (page - 1) * 12 + 1;
   const to = Math.min(page * 12, total);
 
-  return (
-    <div className="container-page py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 min-w-0">
-      <aside className="space-y-6 min-w-0">
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
-          <ul className="space-y-1 text-sm">
-            {categories.map((c) => {
-              const locked = c.restricted && !authorized;
-              return (
-                <li key={c.id}>
-                  {locked ? (
-                    <span
-                      className="flex items-center justify-between w-full px-1 py-1 rounded text-gray-300 cursor-not-allowed"
-                      title="Restricted to approved Locksmith Merchants"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Lock size={11} /> {c.name}
-                      </span>
+  const filtersPanel = (
+    <div className="space-y-6 min-w-0">
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
+        <ul className="space-y-1 text-sm">
+          {categories.map((c) => {
+            const locked = c.restricted && !authorized;
+            return (
+              <li key={c.id}>
+                {locked ? (
+                  <span
+                    className="flex items-center justify-between w-full px-1 py-1 rounded text-gray-300 cursor-not-allowed"
+                    title="Restricted to approved Locksmith Merchants"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Lock size={11} /> {c.name}
                     </span>
-                  ) : (
-                    <button
-                      onClick={() =>
-                        fixedCategorySlug
-                          ? router.push(`/category/${c.slug}`)
-                          : updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)))
-                      }
-                      className={`flex items-center justify-between w-full text-left px-1 py-1 rounded hover:text-brand ${
-                        categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
-                      }`}
-                    >
-                      {c.name} <span className="text-gray-300">›</span>
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Filter by Price</h3>
-          <div className="flex items-center gap-2 text-sm min-w-0">
-            <input
-              type="number"
-              placeholder="Min"
-              defaultValue={minPrice}
-              onBlur={(e) => updateParams((p) => (e.target.value ? p.set("minPrice", e.target.value) : p.delete("minPrice")))}
-              className="w-full min-w-0 border border-gray-300 rounded px-2 py-1"
-            />
-            <span className="text-gray-400 shrink-0">-</span>
-            <input
-              type="number"
-              placeholder="Max"
-              defaultValue={maxPrice}
-              onBlur={(e) => updateParams((p) => (e.target.value ? p.set("maxPrice", e.target.value) : p.delete("maxPrice")))}
-              className="w-full min-w-0 border border-gray-300 rounded px-2 py-1"
-            />
-          </div>
-        </div>
-
-        {!brandSlug && (
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Brand</h3>
-            <ul className="space-y-1.5 text-sm max-h-56 overflow-y-auto pr-1">
-              {brands.map((b) => (
-                <li key={b.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.includes(b.slug)}
-                    onChange={() => toggleListValue("brand", b.slug)}
-                    className="accent-brand"
-                  />
-                  <span className="text-gray-700">
-                    {b.name} {b._count ? <span className="text-gray-400">({b._count.products})</span> : null}
                   </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+                ) : (
+                  <button
+                    onClick={() => {
+                      setFiltersOpen(false);
+                      fixedCategorySlug
+                        ? router.push(`/category/${c.slug}`)
+                        : updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)));
+                    }}
+                    className={`flex items-center justify-between w-full text-left px-1 py-1 rounded hover:text-brand ${
+                      categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
+                    }`}
+                  >
+                    {c.name} <span className="text-gray-300">›</span>
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
 
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Filter by Price</h3>
+        <div className="flex items-center gap-2 text-sm min-w-0">
+          <input
+            type="number"
+            placeholder="Min"
+            defaultValue={minPrice}
+            onBlur={(e) => updateParams((p) => (e.target.value ? p.set("minPrice", e.target.value) : p.delete("minPrice")))}
+            className="w-full min-w-0 border border-gray-300 rounded px-2 py-1"
+          />
+          <span className="text-gray-400 shrink-0">-</span>
+          <input
+            type="number"
+            placeholder="Max"
+            defaultValue={maxPrice}
+            onBlur={(e) => updateParams((p) => (e.target.value ? p.set("maxPrice", e.target.value) : p.delete("maxPrice")))}
+            className="w-full min-w-0 border border-gray-300 rounded px-2 py-1"
+          />
+        </div>
+      </div>
+
+      {!brandSlug && (
         <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Product Type</h3>
-          <ul className="space-y-1.5 text-sm">
-            {PRODUCT_TYPES.map((t) => (
-              <li key={t} className="flex items-center gap-2">
+          <h3 className="font-semibold text-gray-900 mb-3">Brand</h3>
+          <ul className="space-y-1.5 text-sm max-h-56 overflow-y-auto pr-1">
+            {brands.map((b) => (
+              <li key={b.id} className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={selectedTypes.includes(t)}
-                  onChange={() => toggleListValue("productType", t)}
+                  checked={selectedBrands.includes(b.slug)}
+                  onChange={() => toggleListValue("brand", b.slug)}
                   className="accent-brand"
                 />
-                <span className="text-gray-700">{t}</span>
+                <span className="text-gray-700">
+                  {b.name} {b._count ? <span className="text-gray-400">({b._count.products})</span> : null}
+                </span>
               </li>
             ))}
           </ul>
         </div>
+      )}
 
-        <button onClick={clearFilters} className="text-brand text-sm font-medium hover:underline">
-          Clear Filters
-        </button>
-      </aside>
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Product Type</h3>
+        <ul className="space-y-1.5 text-sm">
+          {PRODUCT_TYPES.map((t) => (
+            <li key={t} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedTypes.includes(t)}
+                onChange={() => toggleListValue("productType", t)}
+                className="accent-brand"
+              />
+              <span className="text-gray-700">{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <button onClick={clearFilters} className="text-brand text-sm font-medium hover:underline">
+        Clear Filters
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="container-page py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 min-w-0">
+      <aside className="hidden md:block">{filtersPanel}</aside>
+
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent side="left" className="light w-[85vw] sm:max-w-sm overflow-y-auto bg-background text-foreground">
+          <SheetHeader className="border-b border-gray-100">
+            <SheetTitle>Filters</SheetTitle>
+          </SheetHeader>
+          <div className="p-4">{filtersPanel}</div>
+        </SheetContent>
+      </Sheet>
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4 text-sm text-gray-600">
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="md:hidden inline-flex items-center gap-1.5 border border-gray-300 rounded-md px-3 py-1.5 text-gray-700 hover:border-brand hover:text-brand"
+          >
+            <SlidersHorizontal size={14} />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="bg-brand text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
           <span>
             {loading ? "Loading..." : `Showing ${from}-${to} of ${total} results`}
           </span>

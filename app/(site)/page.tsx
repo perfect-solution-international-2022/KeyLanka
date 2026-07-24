@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategories, getBrands, isServerLocksmithAuthorized } from "@/lib/queries";
+import { getCategories, getBrands, getFeaturedProducts, isServerLocksmithAuthorized } from "@/lib/queries";
 import CategoryTile from "@/components/CategoryTile";
 import BrandStrip from "@/components/BrandStrip";
+import ProductCard from "@/components/ProductCard";
 
 function ShippingIcon() {
   return (
@@ -106,10 +107,11 @@ const SERVICE_ICONS = [
 ];
 
 export default async function HomePage() {
-  const [categories, brands, locksmithAuthorized] = await Promise.all([
+  const locksmithAuthorized = await isServerLocksmithAuthorized().catch(() => false);
+  const [categories, brands, featuredProducts] = await Promise.all([
     getCategories().catch(() => []),
     getBrands().catch(() => []),
-    isServerLocksmithAuthorized().catch(() => false),
+    getFeaturedProducts(8, { locksmithAuthorized }).catch(() => []),
   ]);
 
   return (
@@ -178,6 +180,23 @@ export default async function HomePage() {
           <CategoryTile name="Services" slug="services" href="/services" image="/services.jpeg" />
         </div>
       </section>
+
+      {featuredProducts.length > 0 && (
+        <section className="container-page py-12 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-2xl font-bold text-gray-900">Featured Products</h2>
+            <Link href="/shop" className="text-brand text-sm font-medium hover:underline">
+              View All Products →
+            </Link>
+          </div>
+          <p className="text-gray-500 text-sm mb-6">Hand-picked products worth a closer look</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+            {featuredProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="bg-gray-50 py-12">
         <div className="container-page">

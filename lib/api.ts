@@ -30,6 +30,7 @@ export interface Product {
   rating: string;
   reviewCount: number;
   badge: string | null;
+  featured?: boolean;
   description: string | null;
   images: string[];
   attributes: Record<string, unknown> | null;

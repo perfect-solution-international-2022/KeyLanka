@@ -10,6 +10,7 @@ export interface AdminProduct {
   rating: string;
   reviewCount: number;
   badge: string | null;
+  featured: boolean;
   description: string | null;
   images: string[];
   productType: string | null;
@@ -29,6 +30,7 @@ export interface AdminProductInput {
   rating?: number;
   reviewCount?: number;
   badge?: string | null;
+  featured?: boolean;
   description?: string;
   images: string[];
   productType?: string | null;

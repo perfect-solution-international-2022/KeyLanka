@@ -36,6 +36,7 @@ export function ProductForm({
       .catch(() => {});
   }, []);
   const [badge, setBadge] = useState(product?.badge ?? "");
+  const [featured, setFeatured] = useState(product?.featured ?? false);
   const [description, setDescription] = useState(product?.description ?? "");
   const [productType, setProductType] = useState(product?.productType ?? "");
   const [categoryId, setCategoryId] = useState(String(product?.categoryId ?? categories[0]?.id ?? ""));
@@ -64,6 +65,7 @@ export function ProductForm({
       wholesalePrice: wholesalePrice ? Number(wholesalePrice) : null,
       stock: Number(stock),
       badge: badge || null,
+      featured,
       description,
       images,
       productType: productType || null,
@@ -213,6 +215,16 @@ export function ProductForm({
           />
         </div>
       </div>
+
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <input
+          type="checkbox"
+          checked={featured}
+          onChange={(e) => setFeatured(e.target.checked)}
+          className="h-4 w-4 accent-brand"
+        />
+        Show in Featured Products on the homepage
+      </label>
 
       <div className="space-y-1.5">
         <Label htmlFor="description">Description</Label>
