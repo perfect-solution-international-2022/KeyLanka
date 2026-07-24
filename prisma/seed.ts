@@ -11,11 +11,14 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-const CATEGORY_TREE: { name: string; subs: string[]; image: string }[] = [
+const CATEGORY_TREE: { name: string; subs: string[]; image: string; restricted?: boolean }[] = [
   {
     name: "Locksmith Tools",
     subs: ["Key Programming Tools", "Key Cutting Machines", "Diagnostic Tools", "Accessories", "Transponders & Chips"],
     image: "/categories/locksmith-tools.jpeg",
+    // Locksmith tools/programmers are only sold to approved Locksmith
+    // Merchants — see lib/locksmith.ts and the category page guard.
+    restricted: true,
   },
   {
     name: "Car Keys",
@@ -137,13 +140,13 @@ async function main() {
 
   for (const top of CATEGORY_TREE) {
     const parent = await prisma.category.create({
-      data: { name: top.name, slug: slugify(top.name), image: top.image },
+      data: { name: top.name, slug: slugify(top.name), image: top.image, restricted: top.restricted ?? false },
     });
     categoryIdMap.set(top.name, parent.id);
 
     for (const sub of top.subs) {
       const child = await prisma.category.create({
-        data: { name: sub, slug: slugify(`${top.name}-${sub}`), parentId: parent.id },
+        data: { name: sub, slug: slugify(`${top.name}-${sub}`), parentId: parent.id, restricted: top.restricted ?? false },
       });
       categoryIdMap.set(sub, child.id);
     }

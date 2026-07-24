@@ -9,7 +9,8 @@
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "seed": "tsx prisma/seed.ts",
-    "fix:brand-logos": "tsx prisma/fix-brand-logos.ts"
+    "fix:brand-logos": "tsx prisma/fix-brand-logos.ts",
+    "fix:locksmith-restriction": "tsx prisma/fix-locksmith-restriction.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
