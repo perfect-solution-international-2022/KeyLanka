@@ -2,24 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Heart, ShoppingBag, User } from "lucide-react";
-import { useAuth, useCart, useWishlist } from "@/app/providers";
+import { Home, Store, ShoppingBag, User } from "lucide-react";
+import { useAuth, useCart } from "@/app/providers";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const auth = useAuth();
   const cart = useCart();
-  const wishlist = useWishlist();
 
   const items = [
     { href: "/", label: "Home", icon: Home, exact: true },
-    { href: "/wishlist", label: "Wish List", icon: Heart },
+    { href: "/shop", label: "Shop", icon: Store },
     { href: "/cart", label: "Cart", icon: ShoppingBag },
     { href: auth.user ? "/account" : "/account/login", label: "Account", icon: User },
   ];
 
   const counts: Record<string, number> = {
-    "/wishlist": wishlist.count,
     "/cart": cart.count,
   };
 
