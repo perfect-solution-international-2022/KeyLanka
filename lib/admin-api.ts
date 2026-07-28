@@ -96,6 +96,7 @@ export interface AdminOrder {
   shippingPostalCode: string;
   shippingPhone: string;
   paymentMethod: string;
+  paid: boolean;
   createdAt: string;
   user: { id: number; name: string; email: string };
   items: { id: number; name: string; price: string; quantity: number; productId: number }[];

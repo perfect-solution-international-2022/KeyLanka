@@ -82,8 +82,13 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
             {order.shippingPostalCode ? ` ${order.shippingPostalCode}` : ""}
           </div>
           <div>{order.shippingPhone}</div>
-          <div className="text-muted-foreground capitalize pt-1">
-            Payment: {order.paymentMethod.replace("_", " ")}
+          <div className="text-muted-foreground capitalize pt-1 flex items-center gap-2">
+            <span>Payment: {order.paymentMethod.replace("_", " ")}</span>
+            {order.paymentMethod === "onepay" && (
+              <Badge variant={order.paid ? "outline" : "destructive"} className="normal-case">
+                {order.paid ? "Paid" : "Unpaid"}
+              </Badge>
+            )}
           </div>
         </div>
       </div>

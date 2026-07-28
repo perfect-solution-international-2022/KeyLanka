@@ -108,9 +108,14 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
                 </TableCell>
                 <TableCell>{o.items.reduce((sum, i) => sum + i.quantity, 0)}</TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[o.status] ?? "secondary"} className="capitalize">
-                    {o.status}
-                  </Badge>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge variant={STATUS_VARIANT[o.status] ?? "secondary"} className="capitalize">
+                      {o.status}
+                    </Badge>
+                    {o.paymentMethod === "onepay" && !o.paid && o.status !== "cancelled" && (
+                      <Badge variant="destructive">Unpaid</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">{formatCurrency(o.total)}</TableCell>
                 <TableCell className="text-right text-muted-foreground">
