@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { getTransactionStatus, type OnePayTransactionStatus } from "@/lib/onepay";
 
 type TxClient = Prisma.TransactionClient | PrismaClient;
 
@@ -60,26 +61,79 @@ const STALE_ORDER_MINUTES = 30;
  * overselling the last unit. If the customer abandons checkout — closes the tab,
  * hits back — instead of returning to /checkout/onepay-return, no webhook or
  * return-page visit ever fires, so the order would sit as "pending" forever and
- * its stock would stay locked. This sweeps those out on each admin orders fetch.
+ * its stock would stay locked.
+ *
+ * A stale order is verified with OnePay before deletion. If OnePay cannot be
+ * reached, or says the transaction was paid, the order is left untouched. This
+ * avoids deleting a paid order merely because its webhook was delayed.
  */
-export async function expireStaleOnepayOrders(prisma: PrismaClient) {
-  const cutoff = new Date(Date.now() - STALE_ORDER_MINUTES * 60 * 1000);
+export async function deleteExpiredUnpaidOnepayOrders(
+  prisma: PrismaClient,
+  options: {
+    now?: Date;
+    verifyTransaction?: (transactionId: string) => Promise<OnePayTransactionStatus>;
+  } = {}
+) {
+  const now = options.now ?? new Date();
+  const verifyTransaction = options.verifyTransaction ?? getTransactionStatus;
+  const cutoff = new Date(now.getTime() - STALE_ORDER_MINUTES * 60 * 1000);
   const stale = await prisma.order.findMany({
     where: { paymentMethod: "onepay", paid: false, status: "pending", createdAt: { lt: cutoff } },
     include: { items: true },
   });
+
+  let deleted = 0;
+  let paid = 0;
+  let verificationFailed = 0;
+
   for (const order of stale) {
+    if (order.transactionId) {
+      try {
+        const verification = await verifyTransaction(order.transactionId);
+        const identityMatches = verification.transactionId === order.transactionId;
+        const amountMatches = Math.abs(verification.amount - Number(order.total)) < 0.005;
+        if (!identityMatches || !amountMatches || verification.currency !== "LKR") {
+          verificationFailed += 1;
+          continue;
+        }
+        if (verification.paid) {
+          paid += 1;
+          continue;
+        }
+      } catch {
+        verificationFailed += 1;
+        continue;
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.updateMany({
+      const claimed = await tx.order.updateMany({
         where: { id: order.id, paid: false, status: "pending" },
-        data: { status: "cancelled", paymentStatusMessage: "Checkout abandoned before payment" },
+        data: { status: "expiring" },
       });
-      if (updated.count === 1) {
+      if (claimed.count === 1) {
         await releaseStock(
           tx,
           order.items.map((item) => ({ productId: item.productId, quantity: item.quantity }))
         );
+        await tx.securityAuditLog.create({
+          data: {
+            actorUserId: order.userId,
+            action: "ONEPAY_ORDER_EXPIRED_DELETED",
+            targetType: "ORDER",
+            targetId: String(order.id),
+            metadata: {
+              transactionId: order.transactionId,
+              expiredAfterMinutes: STALE_ORDER_MINUTES,
+            },
+          },
+        });
+        await tx.orderItem.deleteMany({ where: { orderId: order.id } });
+        await tx.order.delete({ where: { id: order.id } });
+        deleted += 1;
       }
     });
   }
+
+  return { checked: stale.length, deleted, paid, verificationFailed };
 }

@@ -64,13 +64,17 @@ export async function POST(req: NextRequest) {
   }
 
   const updated = await prisma.order.updateMany({
-    where: { id: order.id, paid: false },
+    where: { id: order.id, paid: false, status: "pending" },
     data: {
       paymentStatusMessage: payload.status_message || "Payment verified by OnePay",
       paid: true,
       status: "processing",
     },
   });
+
+  if (updated.count === 0) {
+    return NextResponse.json({ error: "Order no longer accepts payment" }, { status: 409 });
+  }
 
   if (updated.count === 1) {
     await recordSecurityEvent({
