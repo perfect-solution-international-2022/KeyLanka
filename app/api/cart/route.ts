@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getUserId, getAuth } from "@/lib/auth-server";
+import { getUserId, verifyAuth } from "@/lib/auth-server";
 import { isAuthLocksmithAuthorized } from "@/lib/queries";
 
-function scopeFilter(req: NextRequest) {
-  const userId = getUserId(req);
+async function scopeFilter(req: NextRequest) {
+  const userId = await getUserId(req);
   if (userId) return { userId };
   const sessionId = req.headers.get("x-session-id");
-  if (sessionId) return { sessionId };
+  if (sessionId && z.string().uuid().safeParse(sessionId).success) return { sessionId };
   return null;
 }
 
 export async function GET(req: NextRequest) {
-  const scope = scopeFilter(req);
+  const scope = await scopeFilter(req);
   if (!scope) return NextResponse.json([]);
   const items = await prisma.cartItem.findMany({
     where: scope,
@@ -34,12 +34,12 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   const { productId, quantity } = parsed.data;
 
-  const scope = scopeFilter(req);
+  const scope = await scopeFilter(req);
   if (!scope) return NextResponse.json({ error: "Missing session" }, { status: 400 });
 
   const product = await prisma.product.findUnique({ where: { id: productId }, include: { category: true } });
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  if (product.category.restricted && !(await isAuthLocksmithAuthorized(getAuth(req)))) {
+  if (product.category.restricted && !(await isAuthLocksmithAuthorized(await verifyAuth(req)))) {
     return NextResponse.json({ error: "This product is restricted to approved Locksmith Merchants" }, { status: 403 });
   }
 
@@ -48,12 +48,12 @@ export async function POST(req: NextRequest) {
   if (existing) {
     item = await prisma.cartItem.update({
       where: { id: existing.id },
-      data: { quantity: existing.quantity + quantity },
+      data: { quantity: product.soldIndividually ? 1 : existing.quantity + quantity },
       include: { product: true },
     });
   } else {
     item = await prisma.cartItem.create({
-      data: { ...scope, productId, quantity },
+      data: { ...scope, productId, quantity: product.soldIndividually ? 1 : quantity },
       include: { product: true },
     });
   }

@@ -4,6 +4,14 @@ import { getCategories, getBrands, getFeaturedProducts, isServerLocksmithAuthori
 import CategoryTile from "@/components/CategoryTile";
 import BrandStrip from "@/components/BrandStrip";
 import ProductCard from "@/components/ProductCard";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "Car Keys, Remotes & Locksmith Tools in Sri Lanka",
+  description:
+    "Shop automotive keys, remotes, shells, transponders and locksmith tools from Key Lanka, with islandwide delivery and expert product support.",
+  path: "/",
+});
 
 function ShippingIcon() {
   return (
@@ -96,7 +104,7 @@ const TRUST_BADGES = [
   { title: "Secure Payment", desc: "100% secure checkout", Icon: PaymentIcon },
   { title: "High Quality", desc: "Tested & trusted products", Icon: QualityIcon },
   { title: "Expert Support", desc: "24/7 customer support", Icon: SupportIcon },
-  { title: "Easy Returns", desc: "Hassle free returns", Icon: ReturnsIcon },
+  { title: "Compatibility Help", desc: "Confirm before ordering", Icon: ReturnsIcon },
 ];
 
 const SERVICE_ICONS = [

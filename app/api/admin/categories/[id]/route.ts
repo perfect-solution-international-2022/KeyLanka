@@ -12,7 +12,7 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
 
   const body = await req.json();
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const categoryId = Number(id);
 

@@ -21,8 +21,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   return (
     <AdminShell title="Edit Product">
-      <h2 className="text-lg font-semibold mb-4">Edit Product</h2>
-      <ProductForm product={serialize<AdminProduct>(product)} categories={categories} brands={brands} />
+      <ProductForm product={serialize<AdminProduct>(product)} categories={categories} brands={brands} fullWidth />
     </AdminShell>
   );
 }

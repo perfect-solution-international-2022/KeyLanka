@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { requireAdmin } from "@/lib/auth-server";
-
-const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif"]);
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+import {
+  createUploadAsset,
+  fileMatchesContentType,
+  PRODUCT_IMAGE_MAX_SIZE,
+  PRODUCT_IMAGE_TYPES,
+} from "@/lib/upload-assets";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { recordSecurityEvent } from "@/lib/security-audit";
+import { scanUploadForMalware } from "@/lib/malware-scan";
 
 export async function POST(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await requireAdmin(req);
+  if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const rateLimit = await checkRateLimit(req, "admin-image-upload", { limit: 60, windowMs: 10 * 60 * 1000 });
+  if (rateLimit.limited) return rateLimitResponse(rateLimit.retryAfter);
 
   const form = await req.formData();
   const file = form.get("file");
@@ -15,20 +22,43 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
+  if (!PRODUCT_IMAGE_TYPES.has(file.type)) {
+    return NextResponse.json({ error: "Use a JPG, PNG, WebP or GIF image" }, { status: 400 });
   }
-  if (file.size > MAX_SIZE) {
+  if (file.size > PRODUCT_IMAGE_MAX_SIZE) {
     return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
   }
 
-  const ext = path.extname(file.name) || `.${file.type.split("/")[1]}`;
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!fileMatchesContentType(bytes, file.type)) {
+    return NextResponse.json({ error: "The file contents do not match its image type" }, { status: 400 });
+  }
+  const malwareScan = await scanUploadForMalware(bytes);
+  if (!malwareScan.safe) {
+    return NextResponse.json(
+      {
+        error: malwareScan.unavailable
+          ? "Image scanning is temporarily unavailable"
+          : "The uploaded image did not pass the security scan",
+      },
+      { status: malwareScan.unavailable ? 503 : 400 }
+    );
+  }
+  const asset = await createUploadAsset({
+    ownerId: auth.userId,
+    visibility: "PUBLIC",
+    purpose: "PRODUCT_IMAGE",
+    originalName: file.name,
+    contentType: file.type,
+    bytes,
+  });
+  await recordSecurityEvent({
+    req,
+    actorUserId: auth.userId,
+    action: "ADMIN_PRODUCT_IMAGE_UPLOADED",
+    targetType: "UPLOAD_ASSET",
+    targetId: asset.id,
+  });
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadDir, filename), buffer);
-
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  return NextResponse.json({ url: `/api/assets/${asset.id}` }, { status: 201 });
 }

@@ -7,8 +7,7 @@ export default async function NewProductPage() {
 
   return (
     <AdminShell title="Add Product">
-      <h2 className="text-lg font-semibold mb-4">Add Product</h2>
-      <ProductForm categories={categories} brands={brands} />
+      <ProductForm categories={categories} brands={brands} fullWidth />
     </AdminShell>
   );
 }

@@ -80,12 +80,13 @@ export default function RegisterPage() {
           <PasswordInput
             id="password"
             required
-            minLength={6}
+            minLength={10}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="h-11"
-            placeholder="At least 6 characters"
+            placeholder="10+ characters, upper/lowercase and a number"
           />
+          <p className="text-xs text-gray-500">Use at least 10 characters with uppercase, lowercase and a number.</p>
         </div>
         <button
           disabled={loading}

@@ -1,7 +1,13 @@
 import { Suspense } from "react";
 import ShopContent from "@/components/ShopContent";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Shop | Key Lanka" };
+export const metadata = pageMetadata({
+  title: "Shop Car Keys, Remotes & Locksmith Tools",
+  description:
+    "Browse Key Lanka's range of car keys, smart remotes, key shells, transponders, accessories and professional locksmith tools in Sri Lanka.",
+  path: "/shop",
+});
 
 export default function ShopPage() {
   return (

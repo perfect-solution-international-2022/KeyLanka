@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { CheckCircle2, XCircle, FileText, ExternalLink, Ban, RotateCcw } from "lucide-react";
 import {
   Table,
@@ -26,11 +27,19 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 type TabValue = "pending" | "approved" | "rejected" | "disabled" | "all";
 
 function docName(url: string) {
-  return url.split("/").pop() ?? url;
+  try {
+    return new URL(url, "http://keylanka.local").searchParams.get("name") ?? url.split("/").pop() ?? url;
+  } catch {
+    return url.split("/").pop() ?? url;
+  }
 }
 
 function isPdf(url: string) {
-  return url.toLowerCase().endsWith(".pdf");
+  try {
+    return new URL(url, "http://keylanka.local").searchParams.get("type") === "pdf";
+  } catch {
+    return url.toLowerCase().endsWith(".pdf");
+  }
 }
 
 export function LocksmithApplicationsTable({ applications: initial }: { applications: AdminLocksmithApplication[] }) {
@@ -275,9 +284,18 @@ export function LocksmithApplicationsTable({ applications: initial }: { applicat
             <>
               <div className="rounded-lg border bg-muted/30 overflow-hidden max-h-[70vh]">
                 {isPdf(previewDoc.url) ? (
-                  <iframe src={previewDoc.url} className="w-full h-[70vh]" title={previewDoc.label} />
+                  <div className="flex min-h-48 items-center justify-center p-8 text-center text-sm text-muted-foreground">
+                    PDFs are downloaded instead of rendered in the browser for security.
+                  </div>
                 ) : (
-                  <img src={previewDoc.url} alt={previewDoc.label} className="w-full h-auto max-h-[70vh] object-contain" />
+                  <Image
+                    src={previewDoc.url}
+                    alt={previewDoc.label}
+                    width={1200}
+                    height={900}
+                    unoptimized
+                    className="h-auto max-h-[70vh] w-full object-contain"
+                  />
                 )}
               </div>
               <a
@@ -286,7 +304,7 @@ export function LocksmithApplicationsTable({ applications: initial }: { applicat
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-brand"
               >
-                <ExternalLink size={12} /> Open original in a new tab
+                <ExternalLink size={12} /> {isPdf(previewDoc.url) ? "Download document" : "Open original in a new tab"}
               </a>
             </>
           )}

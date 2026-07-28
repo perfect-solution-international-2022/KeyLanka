@@ -65,7 +65,7 @@ function ResetPasswordForm() {
             <PasswordInput
               id="password"
               required
-              minLength={6}
+              minLength={10}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-11"
@@ -77,13 +77,14 @@ function ResetPasswordForm() {
             <PasswordInput
               id="confirm-password"
               required
-              minLength={6}
+              minLength={10}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="h-11"
               placeholder="••••••••"
             />
           </div>
+          <p className="text-xs text-gray-500">Use at least 10 characters with uppercase, lowercase and a number.</p>
           <button
             disabled={loading}
             className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-medium h-11 rounded-md transition-colors"

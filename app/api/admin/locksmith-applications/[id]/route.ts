@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
+import { recordSecurityEvent } from "@/lib/security-audit";
 
 const updateSchema = z.object({
   status: z.enum(["approved", "rejected", "disabled"]),
@@ -9,7 +10,8 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await requireAdmin(req);
+  if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
 
   const body = await req.json();
@@ -28,6 +30,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
     await tx.user.update({ where: { id: app.userId }, data: { locksmithStatus: data.status } });
     return app;
+  });
+  await recordSecurityEvent({
+    req,
+    actorUserId: auth.userId,
+    action: "ADMIN_KYC_STATUS_CHANGED",
+    targetType: "LOCKSMITH_APPLICATION",
+    targetId: application.id,
+    metadata: { status: application.status },
   });
 
   return NextResponse.json(application);

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import {
   Card,
   CardAction,
@@ -28,6 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/api";
 import { exportToExcel } from "@/lib/export-excel";
+import { exportToPdf } from "@/lib/export-pdf";
 
 export interface SalesReportData {
   daily: { date: string; orders: number; revenue: number }[];
@@ -44,9 +45,17 @@ const chartConfig = {
   orders: { label: "Orders", color: "var(--color-brand-dark)" },
 } satisfies ChartConfig;
 
-export function SalesReport({ data }: { data: SalesReportData }) {
-  function handleExport() {
-    exportToExcel("sales-report", [
+export function SalesReport({
+  data,
+  rangeDays,
+  rangeLabel,
+}: {
+  data: SalesReportData;
+  rangeDays: number;
+  rangeLabel: string;
+}) {
+  function handleExcelExport() {
+    exportToExcel(`sales-report-${rangeDays}-days`, [
       {
         name: "Summary",
         rows: [
@@ -67,6 +76,53 @@ export function SalesReport({ data }: { data: SalesReportData }) {
       {
         name: "By Payment Method",
         rows: data.byPaymentMethod.map((p) => ({ "Payment Method": p.method, Count: p.count })),
+      },
+    ]);
+  }
+
+  function handlePdfExport() {
+    exportToPdf(`sales-report-${rangeDays}-days`, `Sales Report - ${rangeLabel}`, [
+      {
+        title: "Summary",
+        columns: [
+          { key: "metric", label: "Metric", width: 500 },
+          { key: "value", label: "Value", width: 270, align: "right" },
+        ],
+        rows: [
+          { metric: "Total Revenue", value: formatCurrency(data.totalRevenue) },
+          { metric: "Total Orders", value: data.totalOrders.toLocaleString() },
+          { metric: "Cancelled Orders", value: data.cancelledCount.toLocaleString() },
+          { metric: "Average Order Value", value: formatCurrency(data.avgOrderValue) },
+        ],
+      },
+      {
+        title: "Daily Sales",
+        columns: [
+          { key: "date", label: "Date", width: 260 },
+          { key: "orders", label: "Orders", width: 200, align: "right" },
+          { key: "revenue", label: "Revenue", width: 310, align: "right" },
+        ],
+        rows: data.daily.map((day) => ({
+          date: day.date,
+          orders: day.orders,
+          revenue: formatCurrency(day.revenue),
+        })),
+      },
+      {
+        title: "Orders by Status",
+        columns: [
+          { key: "status", label: "Status", width: 500 },
+          { key: "count", label: "Count", width: 270, align: "right" },
+        ],
+        rows: data.byStatus,
+      },
+      {
+        title: "Orders by Payment Method",
+        columns: [
+          { key: "method", label: "Payment Method", width: 500 },
+          { key: "count", label: "Count", width: 270, align: "right" },
+        ],
+        rows: data.byPaymentMethod,
       },
     ]);
   }
@@ -111,14 +167,22 @@ export function SalesReport({ data }: { data: SalesReportData }) {
       <Card className="@container/card">
         <CardHeader>
           <CardTitle>Revenue Over Time</CardTitle>
-          <CardDescription>Daily orders and revenue (cancelled orders excluded)</CardDescription>
+          <CardDescription>Daily orders and revenue for {rangeLabel} (cancelled orders excluded)</CardDescription>
           <CardAction>
-            <button
-              onClick={handleExport}
-              className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-md px-3 py-1.5 hover:bg-muted"
-            >
-              <Download size={13} /> Download Excel
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleExcelExport}
+                className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-md px-3 py-1.5 hover:bg-muted"
+              >
+                <Download size={13} /> Download CSV
+              </button>
+              <button
+                onClick={handlePdfExport}
+                className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-md px-3 py-1.5 hover:bg-muted"
+              >
+                <FileText size={13} /> Download PDF
+              </button>
+            </div>
           </CardAction>
         </CardHeader>
         <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">

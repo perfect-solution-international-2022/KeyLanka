@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
 import { createCheckoutLink } from "@/lib/onepay";
 import { InsufficientStockError, releaseStock, reserveStock } from "@/lib/inventory";
-import { getWholesaleMinQty } from "@/lib/queries";
 import { getUnitPrice } from "@/lib/pricing";
+import { getShippingCost } from "@/lib/queries";
 
 const schema = z.object({
   shippingName: z.string().min(1),
@@ -17,7 +17,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const userId = getUserId(req);
+  const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const body = await req.json();
@@ -32,15 +32,19 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
 
-  const wholesaleMinQty = await getWholesaleMinQty();
   const unitPrices = cartItems.map((ci) =>
     getUnitPrice(
-      { price: Number(ci.product.price), wholesalePrice: ci.product.wholesalePrice != null ? Number(ci.product.wholesalePrice) : null },
-      ci.quantity,
-      wholesaleMinQty
+      {
+        price: Number(ci.product.price),
+        wholesalePrice: ci.product.wholesalePrice != null ? Number(ci.product.wholesalePrice) : null,
+        wholesaleMinQty: ci.product.wholesaleMinQty,
+      },
+      ci.quantity
     )
   );
-  const total = cartItems.reduce((sum, ci, i) => sum + unitPrices[i] * ci.quantity, 0);
+  const subtotal = cartItems.reduce((sum, ci, i) => sum + unitPrices[i] * ci.quantity, 0);
+  const shippingCost = await getShippingCost();
+  const total = subtotal + shippingCost;
 
   let orderId: number;
   try {
@@ -51,13 +55,19 @@ export async function POST(req: NextRequest) {
     const order = await prisma.$transaction(async (tx) => {
       await reserveStock(
         tx,
-        cartItems.map((ci) => ({ productId: ci.productId, quantity: ci.quantity, name: ci.product.name }))
+        cartItems.map((ci) => ({
+          productId: ci.productId,
+          quantity: ci.quantity,
+          name: ci.product.name,
+          allowBackorder: ci.product.allowBackorder,
+        }))
       );
 
       return tx.order.create({
         data: {
           userId,
           total,
+          shippingCost,
           shippingName: data.shippingName,
           shippingLine1: data.shippingLine1,
           shippingCity: data.shippingCity,

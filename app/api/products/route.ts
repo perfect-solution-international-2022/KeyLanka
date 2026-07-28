@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProducts, isAuthLocksmithAuthorized } from "@/lib/queries";
-import { getAuth } from "@/lib/auth-server";
+import { verifyAuth } from "@/lib/auth-server";
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
-  const locksmithAuthorized = await isAuthLocksmithAuthorized(getAuth(req));
+  const locksmithAuthorized = await isAuthLocksmithAuthorized(await verifyAuth(req));
   const result = await getProducts(
     {
       category: sp.get("category") ?? undefined,

@@ -3,6 +3,20 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getBrandBySlug } from "@/lib/queries";
 import ShopContent from "@/components/ShopContent";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const brand = await getBrandBySlug(slug).catch(() => null);
+  if (!brand) return { title: "Brand Not Found", robots: { index: false, follow: false } };
+  return pageMetadata({
+    title: `${brand.name} Car Keys, Remotes & Key Shells`,
+    description: `Shop ${brand.name} smart keys, remote keys, key shells, covers, transponders and key blanks from Key Lanka in Sri Lanka.`,
+    path: `/brand/${brand.slug}`,
+    image: brand.logo,
+  });
+}
 
 export default async function BrandPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -1,6 +1,11 @@
 import { PrivacyPolicyContent } from "@/components/legal/PrivacyPolicyContent";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Privacy Policy | Key Lanka" };
+export const metadata = pageMetadata({
+  title: "Privacy Policy",
+  description: "Read how Key Lanka collects, uses, protects and retains personal information when you use our website and services.",
+  path: "/privacy-policy",
+});
 
 export default function PrivacyPolicyPage() {
   return (

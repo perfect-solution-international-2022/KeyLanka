@@ -259,11 +259,11 @@ export default function CheckoutPage() {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium text-gray-900 line-clamp-1">{item.product.name}</div>
                   <div className="text-xs text-gray-500">
-                    {formatCurrency(getUnitPrice(item.product, item.quantity, cart.wholesaleMinQty))} each
+                    {formatCurrency(getUnitPrice(item.product, item.quantity))} each
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-gray-900 shrink-0">
-                  {formatCurrency(getLineTotal(item.product, item.quantity, cart.wholesaleMinQty))}
+                  {formatCurrency(getLineTotal(item.product, item.quantity))}
                 </div>
               </div>
             ))}
@@ -275,11 +275,13 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between text-sm text-gray-500">
               <span>Shipping</span>
-              <span className="text-green-600 font-medium">Free</span>
+              <span className={cart.shippingCost === 0 ? "text-green-600 font-medium" : "font-medium text-gray-700"}>
+                {cart.shippingCost === 0 ? "Free" : formatCurrency(cart.shippingCost)}
+              </span>
             </div>
             <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-3">
               <span>Total</span>
-              <span>{formatCurrency(cart.subtotal)}</span>
+              <span>{formatCurrency(cart.subtotal + cart.shippingCost)}</span>
             </div>
           </div>
         </aside>

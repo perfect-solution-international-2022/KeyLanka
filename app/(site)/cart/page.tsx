@@ -31,8 +31,10 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Shopping Cart</h1>
         <div className="space-y-4">
           {cart.items.map((item) => {
-            const unitPrice = getUnitPrice(item.product, item.quantity, cart.wholesaleMinQty);
-            const isWholesale = item.product.wholesalePrice != null && item.quantity >= cart.wholesaleMinQty;
+            const unitPrice = getUnitPrice(item.product, item.quantity);
+            const isWholesale =
+              item.product.wholesalePrice != null &&
+              item.quantity >= item.product.wholesaleMinQty;
             return (
               <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-4 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center gap-4 min-w-0">
@@ -59,7 +61,7 @@ export default function CartPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-4 sm:ml-auto">
-                  <div className="flex items-center border border-gray-300 rounded-md shrink-0">
+                  {!item.product.soldIndividually && <div className="flex items-center border border-gray-300 rounded-md shrink-0">
                     <button
                       onClick={() => cart.updateQuantity(item.id, Math.max(1, item.quantity - 1))}
                       className="px-2.5 py-1.5 text-gray-600"
@@ -70,9 +72,9 @@ export default function CartPage() {
                     <button onClick={() => cart.updateQuantity(item.id, item.quantity + 1)} className="px-2.5 py-1.5 text-gray-600">
                       +
                     </button>
-                  </div>
+                  </div>}
                   <div className="w-20 text-right font-semibold text-gray-900 shrink-0">
-                    {formatCurrency(getLineTotal(item.product, item.quantity, cart.wholesaleMinQty))}
+                    {formatCurrency(getLineTotal(item.product, item.quantity))}
                   </div>
                   <button onClick={() => cart.removeItem(item.id)} className="text-gray-400 hover:text-brand text-sm shrink-0">
                     Remove
@@ -92,11 +94,11 @@ export default function CartPage() {
         </div>
         <div className="flex justify-between text-sm text-gray-600 mb-4">
           <span>Shipping</span>
-          <span>Calculated at checkout</span>
+          <span>{cart.shippingCost === 0 ? "Free" : formatCurrency(cart.shippingCost)}</span>
         </div>
         <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-100 pt-3 mb-4">
           <span>Total</span>
-          <span>{formatCurrency(cart.subtotal)}</span>
+          <span>{formatCurrency(cart.subtotal + cart.shippingCost)}</span>
         </div>
         <Link href="/checkout" className="block text-center bg-brand hover:bg-brand-dark text-white font-medium py-3 rounded-md">
           Proceed to Checkout

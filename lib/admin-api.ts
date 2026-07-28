@@ -6,12 +6,21 @@ export interface AdminProduct {
   price: string;
   compareAtPrice: string | null;
   wholesalePrice: string | null;
+  wholesaleMinQty: number;
   stock: number;
+  lowStockThreshold: number;
+  allowBackorder: boolean;
+  soldIndividually: boolean;
   rating: string;
   reviewCount: number;
   badge: string | null;
   featured: boolean;
+  shortDescription: string | null;
   description: string | null;
+  seoTitle: string | null;
+  metaDescription: string | null;
+  focusKeywords: string | null;
+  imageAlt: string | null;
   images: string[];
   productType: string | null;
   categoryId: number;
@@ -22,16 +31,26 @@ export interface AdminProduct {
 
 export interface AdminProductInput {
   name: string;
+  slug?: string;
   sku: string;
   price: number;
   compareAtPrice?: number | null;
   wholesalePrice?: number | null;
+  wholesaleMinQty?: number;
   stock: number;
+  lowStockThreshold?: number;
+  allowBackorder?: boolean;
+  soldIndividually?: boolean;
   rating?: number;
   reviewCount?: number;
   badge?: string | null;
   featured?: boolean;
+  shortDescription?: string;
   description?: string;
+  seoTitle?: string;
+  metaDescription?: string;
+  focusKeywords?: string;
+  imageAlt?: string;
   images: string[];
   productType?: string | null;
   categoryId: number;
@@ -69,6 +88,7 @@ export interface AdminOrder {
   id: number;
   status: string;
   total: string;
+  shippingCost: string;
   shippingName: string;
   shippingLine1: string;
   shippingCity: string;
@@ -140,6 +160,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const adminApi = {
+  getShippingSettings: () => request<{ id: number; shippingCost: string }>("/shipping"),
+  updateShippingSettings: (data: { shippingCost: number }) =>
+    request<{ id: number; shippingCost: string }>("/shipping", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   // products
   getProducts: (search?: string) => request<AdminProduct[]>(`/products${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   getProduct: (id: number) => request<AdminProduct>(`/products/${id}`),
@@ -186,11 +213,6 @@ export const adminApi = {
   // accounts (all users, admin can create buyers or admins)
   getUsers: () => request<AdminUser[]>("/users"),
   createUser: (data: AdminUserInput) => request<AdminUser>("/users", { method: "POST", body: JSON.stringify(data) }),
-
-  // settings
-  getSettings: () => request<{ id: number; wholesaleMinQty: number }>("/settings"),
-  updateSettings: (data: { wholesaleMinQty: number }) =>
-    request<{ id: number; wholesaleMinQty: number }>("/settings", { method: "PATCH", body: JSON.stringify(data) }),
 
   // locksmith merchant applications
   getLocksmithApplications: () => request<AdminLocksmithApplication[]>("/locksmith-applications"),

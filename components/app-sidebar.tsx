@@ -26,9 +26,10 @@ import {
   UserCogIcon,
   WrenchIcon,
   StoreIcon,
-  Settings2Icon,
   BarChart3Icon,
   KeyRoundIcon,
+  TruckIcon,
+  ShieldCheckIcon,
 } from "lucide-react"
 
 const data = {
@@ -38,7 +39,7 @@ const data = {
     avatar: "",
   },
   navSecondary: [
-    { title: "Wholesale Settings", url: "/admin/settings", icon: <Settings2Icon /> },
+    { title: "Shipping Settings", url: "/admin/shipping", icon: <TruckIcon /> },
     { title: "View Store", url: "/", icon: <StoreIcon /> },
   ],
 }
@@ -75,6 +76,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Accounts", url: "/admin/accounts", icon: <UserCogIcon /> },
     { title: "Locksmith KYC", url: "/admin/locksmith", icon: <KeyRoundIcon />, badge: badgeCounts.pendingLocksmith },
     { title: "Reports", url: "/admin/reports", icon: <BarChart3Icon /> },
+    { title: "Security Activity", url: "/admin/security", icon: <ShieldCheckIcon /> },
   ]
 
   return (

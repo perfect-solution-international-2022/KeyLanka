@@ -8,16 +8,16 @@ datasource db {
 }
 
 model Category {
-  id          Int        @id @default(autoincrement())
-  name        String
-  slug        String     @unique
-  image       String?
-  restricted  Boolean    @default(false)
-  parentId    Int?
-  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryToCategory")
-  products    Product[]
-  createdAt   DateTime   @default(now())
+  id         Int        @id @default(autoincrement())
+  name       String
+  slug       String     @unique
+  image      String?
+  restricted Boolean    @default(false)
+  parentId   Int?
+  parent     Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryToCategory")
+  products   Product[]
+  createdAt  DateTime   @default(now())
 
   @@index([parentId])
 }
@@ -32,31 +32,40 @@ model Brand {
 }
 
 model Product {
-  id              Int        @id @default(autoincrement())
-  name            String
-  slug            String     @unique
-  sku             String     @unique
-  price           Decimal    @db.Decimal(10, 2)
-  compareAtPrice  Decimal?   @db.Decimal(10, 2)
-  wholesalePrice  Decimal?   @db.Decimal(10, 2)
-  stock           Int        @default(0)
-  rating          Decimal    @default(0) @db.Decimal(2, 1)
-  reviewCount     Int        @default(0)
-  badge           String?
-  featured        Boolean    @default(false)
-  description     String?    @db.Text
-  images          Json
-  attributes      Json?
-  productType     String?
-  categoryId      Int
-  category        Category   @relation(fields: [categoryId], references: [id])
-  brandId         Int?
-  brand           Brand?     @relation(fields: [brandId], references: [id])
-  cartItems       CartItem[]
-  wishlistItems   WishlistItem[]
-  orderItems      OrderItem[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id                Int            @id @default(autoincrement())
+  name              String
+  slug              String         @unique
+  sku               String         @unique
+  price             Decimal        @db.Decimal(10, 2)
+  compareAtPrice    Decimal?       @db.Decimal(10, 2)
+  wholesalePrice    Decimal?       @db.Decimal(10, 2)
+  wholesaleMinQty   Int            @default(10)
+  stock             Int            @default(0)
+  lowStockThreshold Int            @default(10)
+  allowBackorder    Boolean        @default(false)
+  soldIndividually  Boolean        @default(false)
+  rating            Decimal        @default(0) @db.Decimal(2, 1)
+  reviewCount       Int            @default(0)
+  badge             String?
+  featured          Boolean        @default(false)
+  shortDescription  String?        @db.Text
+  description       String?        @db.Text
+  seoTitle          String?
+  metaDescription   String?        @db.Text
+  focusKeywords     String?        @db.Text
+  imageAlt          String?
+  images            Json
+  attributes        Json?
+  productType       String?
+  categoryId        Int
+  category          Category       @relation(fields: [categoryId], references: [id])
+  brandId           Int?
+  brand             Brand?         @relation(fields: [brandId], references: [id])
+  cartItems         CartItem[]
+  wishlistItems     WishlistItem[]
+  orderItems        OrderItem[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([categoryId])
   @@index([brandId])
@@ -68,19 +77,75 @@ enum Role {
 }
 
 model User {
-  id            Int        @id @default(autoincrement())
-  name          String
-  email         String     @unique
-  passwordHash  String
-  phone         String?
-  role          Role       @default(BUYER)
-  locksmithStatus String?  // null | "pending" | "approved" | "rejected"
+  id                   Int                   @id @default(autoincrement())
+  name                 String
+  email                String                @unique
+  passwordHash         String
+  phone                String?
+  role                 Role                  @default(BUYER)
+  sessionVersion       Int                   @default(0)
+  mustResetPassword    Boolean               @default(false)
+  locksmithStatus      String? // null | "pending" | "approved" | "rejected"
   locksmithApplication LocksmithApplication?
-  addresses     Address[]
-  cartItems     CartItem[]
-  wishlistItems WishlistItem[]
-  orders        Order[]
-  createdAt     DateTime   @default(now())
+  addresses            Address[]
+  cartItems            CartItem[]
+  wishlistItems        WishlistItem[]
+  orders               Order[]
+  uploadAssets         UploadAsset[]
+  adminLoginChallenges AdminLoginChallenge[]
+  securityAuditLogs    SecurityAuditLog[]
+  createdAt            DateTime              @default(now())
+}
+
+model AdminLoginChallenge {
+  id         String    @id @default(cuid()) @db.VarChar(191)
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String    @db.Char(64)
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model SecurityAuditLog {
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  actorUserId Int?
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String   @db.VarChar(64)
+  targetType  String?  @db.VarChar(64)
+  targetId    String?  @db.VarChar(191)
+  ipHash      String?  @db.Char(64)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model UploadAsset {
+  id           String   @id @default(cuid()) @db.VarChar(191)
+  ownerId      Int?
+  owner        User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  visibility   String   @db.VarChar(16)
+  purpose      String   @db.VarChar(32)
+  originalName String
+  contentType  String   @db.VarChar(100)
+  bytes        Bytes    @db.LongBlob
+  createdAt    DateTime @default(now())
+
+  @@index([ownerId])
+  @@index([visibility, purpose])
+}
+
+model RateLimitBucket {
+  key         String   @id @db.VarChar(191)
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
 }
 
 model LocksmithApplication {
@@ -104,28 +169,28 @@ model LocksmithApplication {
 }
 
 model Address {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  fullName   String
-  line1      String
-  city       String
-  phone      String
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  fullName  String
+  line1     String
+  city      String
+  phone     String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }
 
 model CartItem {
-  id          Int      @id @default(autoincrement())
-  userId      Int?
-  sessionId   String?
-  productId   Int
-  product     Product  @relation(fields: [productId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
-  quantity    Int      @default(1)
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  sessionId String?
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([sessionId])
@@ -133,13 +198,13 @@ model CartItem {
 }
 
 model WishlistItem {
-  id          Int      @id @default(autoincrement())
-  userId      Int?
-  sessionId   String?
-  productId   Int
-  product     Product  @relation(fields: [productId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  sessionId String?
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([sessionId])
@@ -147,36 +212,43 @@ model WishlistItem {
 }
 
 model Order {
-  id              Int         @id @default(autoincrement())
-  userId          Int
-  user            User        @relation(fields: [userId], references: [id])
-  status          String      @default("pending")
-  total           Decimal     @db.Decimal(10, 2)
-  shippingName    String
-  shippingLine1   String
-  shippingCity    String
-  shippingDistrict String   @default("")
-  shippingPostalCode String @default("")
-  shippingPhone   String
-  paymentMethod   String      @default("cod")
-  paid            Boolean     @default(false)
-  transactionId   String?     @unique
+  id                   Int         @id @default(autoincrement())
+  userId               Int
+  user                 User        @relation(fields: [userId], references: [id])
+  status               String      @default("pending")
+  total                Decimal     @db.Decimal(10, 2)
+  shippingCost         Decimal     @default(0) @db.Decimal(10, 2)
+  shippingName         String
+  shippingLine1        String
+  shippingCity         String
+  shippingDistrict     String      @default("")
+  shippingPostalCode   String      @default("")
+  shippingPhone        String
+  paymentMethod        String      @default("cod")
+  paid                 Boolean     @default(false)
+  transactionId        String?     @unique
   paymentStatusMessage String?
-  items           OrderItem[]
-  createdAt       DateTime    @default(now())
+  items                OrderItem[]
+  createdAt            DateTime    @default(now())
 
   @@index([userId])
 }
 
+model ShippingSettings {
+  id           Int      @id @default(1)
+  shippingCost Decimal  @default(0) @db.Decimal(10, 2)
+  updatedAt    DateTime @updatedAt
+}
+
 model OrderItem {
-  id         Int      @id @default(autoincrement())
-  orderId    Int
-  order      Order    @relation(fields: [orderId], references: [id])
-  productId  Int
-  product    Product  @relation(fields: [productId], references: [id])
-  name       String
-  price      Decimal  @db.Decimal(10, 2)
-  quantity   Int
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  name      String
+  price     Decimal @db.Decimal(10, 2)
+  quantity  Int
 
   @@index([orderId])
   @@index([productId])
@@ -197,10 +269,4 @@ model ContactMessage {
   email     String
   message   String   @db.Text
   createdAt DateTime @default(now())
-}
-
-// Singleton row (id always 1) holding store-wide configuration.
-model StoreSettings {
-  id              Int @id @default(1)
-  wholesaleMinQty Int @default(10)
 }

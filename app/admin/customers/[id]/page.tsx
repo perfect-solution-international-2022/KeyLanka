@@ -71,7 +71,7 @@ export default async function AdminCustomerDetailPage({ params }: { params: Prom
                     {o.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">{formatCurrency(o.total)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(Number(o.total))}</TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {o.createdAt.toLocaleDateString()}
                 </TableCell>

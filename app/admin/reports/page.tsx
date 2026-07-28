@@ -1,26 +1,33 @@
 import { AdminShell } from "@/components/admin/AdminShell";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SalesReport } from "@/components/admin/SalesReport";
-import { ItemReport } from "@/components/admin/ItemReport";
+import { ReportsView } from "@/components/admin/ReportsView";
 import { getSalesReport, getItemReport } from "@/lib/queries";
 
-export default async function AdminReportsPage() {
-  const [sales, items] = await Promise.all([getSalesReport(90), getItemReport()]);
+const RANGE_LABELS: Record<number, string> = {
+  7: "the last 7 days",
+  30: "the last 30 days",
+  90: "the last 90 days",
+};
+
+export default async function AdminReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; tab?: string }>;
+}) {
+  const params = await searchParams;
+  const requestedDays = Number(params.range);
+  const rangeDays = requestedDays === 7 || requestedDays === 30 ? requestedDays : 90;
+  const initialTab = params.tab === "items" ? "items" : "sales";
+  const [sales, items] = await Promise.all([getSalesReport(rangeDays), getItemReport(rangeDays)]);
 
   return (
     <AdminShell title="Reports">
-      <Tabs defaultValue="sales">
-        <TabsList>
-          <TabsTrigger value="sales">Sales Report</TabsTrigger>
-          <TabsTrigger value="items">Item Report</TabsTrigger>
-        </TabsList>
-        <TabsContent value="sales" className="mt-4">
-          <SalesReport data={sales} />
-        </TabsContent>
-        <TabsContent value="items" className="mt-4">
-          <ItemReport items={items} />
-        </TabsContent>
-      </Tabs>
+      <ReportsView
+        sales={sales}
+        items={items}
+        rangeDays={rangeDays}
+        rangeLabel={RANGE_LABELS[rangeDays]}
+        initialTab={initialTab}
+      />
     </AdminShell>
   );
 }

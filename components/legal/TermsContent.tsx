@@ -42,10 +42,7 @@ export function TermsContent() {
         <p>Prices and product availability may change without prior notice.</p>
 
         <h2 className="text-xl font-semibold text-gray-900 pt-5">5. Payments</h2>
-        <p>
-          Orders will be processed only after payment has been successfully confirmed unless Cash on Delivery is
-          available.
-        </p>
+        <p>Orders will be processed only after payment has been successfully confirmed.</p>
 
         <h2 className="text-xl font-semibold text-gray-900 pt-5">6. Product Information</h2>
         <p>We make every effort to ensure that product descriptions, specifications and images are accurate.</p>
@@ -103,7 +100,7 @@ export function TermsContent() {
         <p>All Restricted Products are supplied strictly for lawful and professional use only.</p>
 
         <h2 className="text-xl font-semibold text-gray-900 pt-5">10. Shipping &amp; Delivery</h2>
-        <p>Orders will be dispatched after payment confirmation.</p>
+        <p>Orders will be dispatched only after full payment has been received and confirmed.</p>
         <p>
           Delivery times are estimates only and may vary depending on your location, courier services and public
           holidays.

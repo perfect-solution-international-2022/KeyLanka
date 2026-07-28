@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { getServices } from "@/lib/queries";
 import { getServiceIcon } from "@/lib/service-icons";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Services | Key Lanka" };
+export const metadata = pageMetadata({
+  title: "Car Key & Locksmith Services",
+  description:
+    "Professional car key programming, duplication and automotive locksmith support from Key Lanka in Nugegoda, Sri Lanka.",
+  path: "/services",
+});
 
 export default async function ServicesPage() {
   const services = await getServices().catch(() => []);

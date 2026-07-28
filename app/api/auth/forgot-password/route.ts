@@ -3,13 +3,24 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signResetToken } from "@/lib/auth-server";
 import { sendMail, renderPasswordResetEmail } from "@/lib/mail";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
-const schema = z.object({ email: z.string().email() });
+const schema = z.object({ email: z.string().email().transform((value) => value.trim().toLowerCase()) });
 
 export async function POST(req: NextRequest) {
+  const rateLimit = await checkRateLimit(req, "auth-forgot-password", { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (rateLimit.limited) return rateLimitResponse(rateLimit.retryAfter);
+
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  const identityLimit = await checkRateLimit(
+    req,
+    "auth-forgot-password-identity",
+    { limit: 3, windowMs: 60 * 60 * 1000 },
+    parsed.data.email
+  );
+  if (identityLimit.limited) return rateLimitResponse(identityLimit.retryAfter);
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
 

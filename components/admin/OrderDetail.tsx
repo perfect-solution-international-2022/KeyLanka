@@ -62,6 +62,10 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
               </div>
             ))}
           </div>
+          <div className="px-4 py-2 border-t flex items-center justify-between text-sm text-muted-foreground">
+            <span>Shipping</span>
+            <span>{Number(order.shippingCost) === 0 ? "Free" : formatCurrency(order.shippingCost)}</span>
+          </div>
           <div className="px-4 py-3 border-t flex items-center justify-between font-semibold">
             <span>Total</span>
             <span>{formatCurrency(order.total)}</span>

@@ -10,7 +10,7 @@ interface CartContextValue {
   loading: boolean;
   count: number;
   subtotal: number;
-  wholesaleMinQty: number;
+  shippingCost: number;
   addToCart: (productId: number, quantity?: number) => Promise<void>;
   updateQuantity: (id: number, quantity: number) => Promise<void>;
   removeItem: (id: number) => Promise<void>;
@@ -43,18 +43,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [sessionId, setSessionId] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartLoading, setCartLoading] = useState(true);
+  const [shippingCost, setShippingCost] = useState(0);
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [wholesaleMinQty, setWholesaleMinQty] = useState(10);
 
   useEffect(() => {
     setSessionId(getSessionId());
-    api
-      .getSettings()
-      .then((s) => setWholesaleMinQty(s.wholesaleMinQty))
-      .catch(() => {});
+    api.getShipping()
+      .then((settings) => setShippingCost(settings.shippingCost))
+      .catch(() => setShippingCost(0));
   }, []);
 
   const refreshCart = useCallback(async () => {
@@ -111,8 +110,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       items: cartItems,
       loading: cartLoading,
       count: cartItems.reduce((sum, i) => sum + i.quantity, 0),
-      subtotal: cartItems.reduce((sum, i) => sum + getLineTotal(i.product, i.quantity, wholesaleMinQty), 0),
-      wholesaleMinQty,
+      subtotal: cartItems.reduce((sum, i) => sum + getLineTotal(i.product, i.quantity), 0),
+      shippingCost,
       addToCart: async (productId, quantity = 1) => {
         await api.addToCart(sessionId, productId, quantity);
         await refreshCart();
@@ -127,7 +126,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       },
       refresh: refreshCart,
     }),
-    [cartItems, cartLoading, sessionId, refreshCart, wholesaleMinQty]
+    [cartItems, cartLoading, shippingCost, sessionId, refreshCart]
   );
 
   const wishlistValue = useMemo<WishlistContextValue>(
@@ -156,6 +155,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       loading: authLoading,
       login: async (email, password) => {
         const u = await api.login({ email, password }, sessionId);
+        if ("mfaRequired" in u) {
+          throw new Error("Admin verification is required");
+        }
         setUser(u);
         await Promise.all([refreshCart(), refreshWishlist()]);
         return u;

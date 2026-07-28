@@ -12,7 +12,7 @@ function slugify(s: string) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const categories = await prisma.category.findMany({
     include: { children: true, _count: { select: { products: true } } },
     orderBy: { id: "asc" },
@@ -28,7 +28,7 @@ const categorySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = categorySchema.safeParse(body);

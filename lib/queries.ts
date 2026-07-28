@@ -1,12 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import { getServerAuth } from "./auth-server";
+import { getVerifiedServerAuth } from "./auth-server";
 import type { Category, Brand, Product, Service, ProductListResponse } from "./api";
 
 // Server Component equivalent of isLocksmithAuthorized() in lib/locksmith.ts —
 // reads the auth cookie via next/headers instead of an AuthUser object.
 export async function isServerLocksmithAuthorized(): Promise<boolean> {
-  const auth = await getServerAuth();
+  const auth = await getVerifiedServerAuth();
   return isAuthLocksmithAuthorized(auth);
 }
 
@@ -128,7 +128,7 @@ export async function getFeaturedProducts(limit = 8, options?: { locksmithAuthor
 export async function getProductBySlug(slug: string) {
   const product = await prisma.product.findUnique({
     where: { slug },
-    include: { category: true, brand: true },
+    include: { category: { include: { parent: true } }, brand: true },
   });
   return product ? serialize<Product>(product) : null;
 }
@@ -141,6 +141,19 @@ export async function getServices() {
 export async function getServiceBySlug(slug: string) {
   const service = await prisma.service.findUnique({ where: { slug } });
   return service ? serialize<Service>(service) : null;
+}
+
+export async function getShippingSettings() {
+  return prisma.shippingSettings.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, shippingCost: 0 },
+  });
+}
+
+export async function getShippingCost(): Promise<number> {
+  const settings = await getShippingSettings();
+  return Number(settings.shippingCost);
 }
 
 export async function mergeGuestData(sessionId: string | undefined | null, userId: number) {
@@ -331,7 +344,11 @@ export async function getSalesReport(days = 90) {
   });
 }
 
-export async function getItemReport() {
+export async function getItemReport(days = 90) {
+  const since = new Date();
+  since.setDate(since.getDate() - days + 1);
+  since.setHours(0, 0, 0, 0);
+
   const [products, orderItems] = await Promise.all([
     prisma.product.findMany({
       select: {
@@ -345,7 +362,12 @@ export async function getItemReport() {
       },
     }),
     prisma.orderItem.findMany({
-      where: { order: { status: { not: "cancelled" } } },
+      where: {
+        order: {
+          status: { not: "cancelled" },
+          createdAt: { gte: since },
+        },
+      },
       select: { productId: true, quantity: true, price: true },
     }),
   ]);
@@ -376,19 +398,4 @@ export async function getItemReport() {
     .sort((a, b) => b.revenue - a.revenue);
 
   return serialize<typeof list>(list);
-}
-
-// --- Store settings (singleton row, id always 1) ---
-
-export async function getStoreSettings() {
-  return prisma.storeSettings.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { id: 1 },
-  });
-}
-
-export async function getWholesaleMinQty(): Promise<number> {
-  const settings = await getStoreSettings();
-  return settings.wholesaleMinQty;
 }

@@ -21,9 +21,16 @@ export class InsufficientStockError extends Error {
  */
 export async function reserveStock(
   tx: TxClient,
-  items: { productId: number; quantity: number; name?: string }[]
+  items: { productId: number; quantity: number; name?: string; allowBackorder?: boolean }[]
 ) {
   for (const item of items) {
+    if (item.allowBackorder) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { stock: { decrement: item.quantity } },
+      });
+      continue;
+    }
     const result = await tx.product.updateMany({
       where: { id: item.productId, stock: { gte: item.quantity } },
       data: { stock: { decrement: item.quantity } },

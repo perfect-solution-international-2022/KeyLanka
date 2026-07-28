@@ -3,17 +3,23 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
+import { recordSecurityEvent } from "@/lib/security-audit";
 
 const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z
+    .string()
+    .min(10)
+    .regex(/[a-z]/)
+    .regex(/[A-Z]/)
+    .regex(/[0-9]/),
   phone: z.string().optional(),
   role: z.enum(["BUYER", "ADMIN"]),
 });
 
 export async function GET(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
@@ -24,7 +30,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await requireAdmin(req);
+  if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = createUserSchema.safeParse(body);
@@ -38,6 +45,14 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.create({
     data: { name: data.name, email: data.email, passwordHash, phone: data.phone, role: data.role },
     select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
+  });
+  await recordSecurityEvent({
+    req,
+    actorUserId: auth.userId,
+    action: "ADMIN_USER_CREATED",
+    targetType: "USER",
+    targetId: user.id,
+    metadata: { role: user.role },
   });
 
   return NextResponse.json(user, { status: 201 });

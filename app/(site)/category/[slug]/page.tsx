@@ -4,6 +4,22 @@ import { notFound } from "next/navigation";
 import { Lock } from "lucide-react";
 import ShopContent from "@/components/ShopContent";
 import { getCategoryBySlug, isServerLocksmithAuthorized } from "@/lib/queries";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const category = await getCategoryBySlug(slug).catch(() => null);
+  if (!category) return { title: "Category Not Found", robots: { index: false, follow: false } };
+  const restricted = category.restricted || category.parent?.restricted;
+  return pageMetadata({
+    title: `${category.name} in Sri Lanka`,
+    description: `Browse ${category.name.toLowerCase()} from Key Lanka, with expert compatibility support and islandwide delivery across Sri Lanka.`,
+    path: `/category/${category.slug}`,
+    image: category.image,
+    noIndex: restricted,
+  });
+}
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

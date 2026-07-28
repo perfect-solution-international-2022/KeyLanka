@@ -75,16 +75,17 @@ export async function createCheckoutLink(params: CreateCheckoutLinkParams): Prom
   const raw = await res.json().catch(() => null);
 
   if (!res.ok) {
-    throw new Error(`OnePay checkout link request failed (${res.status}): ${JSON.stringify(raw)}`);
+    throw new Error(`OnePay checkout link request failed (${res.status})`);
   }
 
-  const checkoutUrl = (raw as any)?.data?.gateway?.redirect_url;
-  const transactionId = (raw as any)?.data?.ipg_transaction_id;
+  const envelope = raw as
+    | { data?: { gateway?: { redirect_url?: unknown }; ipg_transaction_id?: unknown } }
+    | null;
+  const checkoutUrl = envelope?.data?.gateway?.redirect_url;
+  const transactionId = envelope?.data?.ipg_transaction_id;
 
   if (typeof checkoutUrl !== "string" || !checkoutUrl || typeof transactionId !== "string" || !transactionId) {
-    throw new Error(
-      `OnePay response missing expected fields (data.gateway.redirect_url / data.ipg_transaction_id). Raw response: ${JSON.stringify(raw)}`
-    );
+    throw new Error("OnePay returned an incomplete checkout response");
   }
 
   return { checkoutUrl, transactionId, raw };
@@ -99,4 +100,41 @@ export interface OnePayWebhookPayload {
 
 export function isOnePaySuccessStatus(status: number) {
   return status === 1;
+}
+
+export interface OnePayTransactionStatus {
+  paid: boolean;
+  transactionId: string;
+  amount: number;
+  currency: string;
+  paidOn: string | null;
+}
+
+export async function getTransactionStatus(transactionId: string): Promise<OnePayTransactionStatus> {
+  const res = await fetch(`${API_BASE}/v3/transaction/status/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: APP_TOKEN,
+    },
+    body: JSON.stringify({ app_id: APP_ID, onepay_transaction_id: transactionId }),
+    cache: "no-store",
+  });
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`OnePay transaction verification failed (${res.status})`);
+  const envelope = raw as { data?: Record<string, unknown> } | null;
+  const data = envelope?.data ?? (raw as Record<string, unknown> | null);
+  const verifiedId = data?.ipg_transaction_id ?? data?.onepay_transaction_id;
+  const amount = Number(data?.amount);
+  const currency = String(data?.currency ?? "").toUpperCase();
+  if (typeof verifiedId !== "string" || !Number.isFinite(amount) || !currency) {
+    throw new Error("OnePay returned an incomplete verification response");
+  }
+  return {
+    paid: data?.status === true || data?.status === 1 || data?.status === "1",
+    transactionId: verifiedId,
+    amount,
+    currency,
+    paidOn: typeof data?.paid_on === "string" ? data.paid_on : null,
+  };
 }

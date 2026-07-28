@@ -1,13 +1,20 @@
+import { pageMetadata } from "@/lib/seo";
+
 const REASONS = [
   { title: "Genuine & Tested Products", desc: "Every product is quality-checked before it reaches you." },
   { title: "Wide Vehicle Coverage", desc: "Keys, remotes and tools for 25+ vehicle brands." },
   { title: "Expert Technical Support", desc: "Our team helps you pick and program the right key." },
   { title: "Fast, Reliable Delivery", desc: "Quick turnaround with island wide shipping across Sri Lanka." },
   { title: "Secure Checkout", desc: "Safe, straightforward ordering with clear order tracking." },
-  { title: "Easy Returns", desc: "Hassle-free returns if something isn't right." },
+  { title: "Compatibility Help", desc: "Get help confirming the correct key before ordering." },
 ];
 
-export const metadata = { title: "Why Choose Us | Key Lanka" };
+export const metadata = pageMetadata({
+  title: "Why Choose Key Lanka",
+  description:
+    "Choose Key Lanka for tested automotive key products, broad vehicle coverage, expert compatibility help, secure checkout and islandwide delivery.",
+  path: "/why-choose-us",
+});
 
 export default function WhyChooseUsPage() {
   return (

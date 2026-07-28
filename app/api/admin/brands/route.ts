@@ -12,7 +12,7 @@ function slugify(s: string) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const brands = await prisma.brand.findMany({
     include: { _count: { select: { products: true } } },
     orderBy: { name: "asc" },
@@ -26,7 +26,7 @@ const brandSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (!requireAdmin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = brandSchema.safeParse(body);

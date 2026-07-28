@@ -3,20 +3,22 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
 
+const privateDocument = z.string().regex(/^\/api\/locksmith\/documents\/[a-z0-9]+(?:\?.*)?$/);
+
 const applySchema = z.object({
   fullName: z.string().min(1),
   mobileNumber: z.string().min(1),
   email: z.string().email(),
   businessName: z.string().min(1),
-  businessRegDocs: z.array(z.string()).min(1),
-  nationalIdFront: z.string().min(1),
-  nationalIdBack: z.string().min(1),
+  businessRegDocs: z.array(privateDocument).min(1),
+  nationalIdFront: privateDocument,
+  nationalIdBack: privateDocument,
   address: z.string().min(1),
-  utilityBillDoc: z.string().min(1),
+  utilityBillDoc: privateDocument,
 });
 
 export async function GET(req: NextRequest) {
-  const userId = getUserId(req);
+  const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const application = await prisma.locksmithApplication.findUnique({ where: { userId } });
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = getUserId(req);
+  const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const existing = await prisma.locksmithApplication.findUnique({ where: { userId } });

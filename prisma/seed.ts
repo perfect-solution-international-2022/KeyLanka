@@ -234,21 +234,39 @@ async function main() {
     }
   }
 
-  console.log("Seeding admin account...");
-  const adminPasswordHash = await bcrypt.hash("admin123", 10);
-  await prisma.user.upsert({
-    where: { email: "admin@keylanka.lk" },
-    update: { role: "ADMIN" },
-    create: {
-      name: "Key Lanka Admin",
-      email: "admin@keylanka.lk",
-      passwordHash: adminPasswordHash,
-      role: "ADMIN",
-    },
-  });
+  const adminEmail = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+  if (adminEmail && adminPassword) {
+    if (
+      adminPassword.length < 10 ||
+      !/[a-z]/.test(adminPassword) ||
+      !/[A-Z]/.test(adminPassword) ||
+      !/[0-9]/.test(adminPassword)
+    ) {
+      throw new Error("ADMIN_SEED_PASSWORD must be 10+ characters with upper/lowercase letters and a number");
+    }
+    console.log("Seeding configured admin account...");
+    const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {
+        role: "ADMIN",
+        passwordHash: adminPasswordHash,
+        mustResetPassword: false,
+        sessionVersion: { increment: 1 },
+      },
+      create: {
+        name: process.env.ADMIN_SEED_NAME?.trim() || "Key Lanka Admin",
+        email: adminEmail,
+        passwordHash: adminPasswordHash,
+        role: "ADMIN",
+      },
+    });
+  } else {
+    console.log("Admin seed skipped. Set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD to create or rotate it.");
+  }
 
   console.log(`Seed complete. Categories: ${categoryIdMap.size}, Brands: ${brandIdMap.size}, Products: ${totalProducts}, Services: ${SERVICES.length}`);
-  console.log("Admin login: admin@keylanka.lk / admin123");
 }
 
 main()

@@ -7,6 +7,7 @@ export interface Category {
   image: string | null;
   restricted: boolean;
   parentId: number | null;
+  parent?: Category | null;
   children?: Category[];
 }
 
@@ -26,12 +27,21 @@ export interface Product {
   price: string;
   compareAtPrice: string | null;
   wholesalePrice: string | null;
+  wholesaleMinQty: number;
   stock: number;
+  lowStockThreshold: number;
+  allowBackorder: boolean;
+  soldIndividually: boolean;
   rating: string;
   reviewCount: number;
   badge: string | null;
   featured?: boolean;
+  shortDescription: string | null;
   description: string | null;
+  seoTitle: string | null;
+  metaDescription: string | null;
+  focusKeywords: string | null;
+  imageAlt: string | null;
   images: string[];
   attributes: Record<string, unknown> | null;
   productType: string | null;
@@ -104,6 +114,12 @@ export interface AuthUser {
   locksmithStatus?: LocksmithStatus;
 }
 
+export interface AdminMfaRequired {
+  mfaRequired: true;
+  challengeId: string;
+  developmentCode?: string;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -138,10 +154,9 @@ export const api = {
   getProduct: (slug: string) => request<Product>(`/products/${slug}`),
   getServices: () => request<Service[]>("/services"),
   getService: (slug: string) => request<Service>(`/services/${slug}`),
+  getShipping: () => request<{ shippingCost: number }>("/shipping"),
   sendContact: (data: { name: string; email: string; message: string }) =>
     request("/contact", { method: "POST", body: JSON.stringify(data) }),
-  getSettings: () => request<{ wholesaleMinQty: number }>("/settings"),
-
   // cart
   getCart: (sessionId: string) =>
     request<CartItem[]>("/cart", { headers: { "x-session-id": sessionId } }),
@@ -180,10 +195,15 @@ export const api = {
       headers: sessionId ? { "x-session-id": sessionId } : undefined,
     }),
   login: (data: { email: string; password: string }, sessionId?: string) =>
-    request<AuthUser>("/auth/login", {
+    request<AuthUser | AdminMfaRequired>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
       headers: sessionId ? { "x-session-id": sessionId } : undefined,
+    }),
+  completeAdminMfa: (challengeId: string, code: string) =>
+    request<AuthUser>("/auth/admin-mfa", {
+      method: "POST",
+      body: JSON.stringify({ challengeId, code }),
     }),
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request<AuthUser>("/auth/me"),

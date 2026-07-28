@@ -2,8 +2,15 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_SECRET: string = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be set to a random value of at least 32 characters");
+  }
+  return secret;
+})();
 const COOKIE_NAME = "token";
 const MAX_AGE = 30 * 24 * 60 * 60; // 30 days, in seconds
 
@@ -12,6 +19,7 @@ export type Role = "BUYER" | "ADMIN";
 export interface TokenPayload {
   userId: number;
   role: Role;
+  sessionVersion: number;
 }
 
 export function signToken(payload: TokenPayload) {
@@ -32,12 +40,23 @@ export function getAuth(req: NextRequest): TokenPayload | null {
   return verifyToken(token);
 }
 
-export function getUserId(req: NextRequest): number | null {
-  return getAuth(req)?.userId ?? null;
+export async function verifyAuth(req: NextRequest): Promise<TokenPayload | null> {
+  const auth = getAuth(req);
+  if (!auth || !Number.isInteger(auth.sessionVersion)) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: auth.userId },
+    select: { role: true, sessionVersion: true },
+  });
+  if (!user || user.sessionVersion !== auth.sessionVersion) return null;
+  return { userId: auth.userId, role: user.role, sessionVersion: user.sessionVersion };
 }
 
-export function requireAdmin(req: NextRequest): TokenPayload | null {
-  const auth = getAuth(req);
+export async function getUserId(req: NextRequest): Promise<number | null> {
+  return (await verifyAuth(req))?.userId ?? null;
+}
+
+export async function requireAdmin(req: NextRequest): Promise<TokenPayload | null> {
+  const auth = await verifyAuth(req);
   return auth?.role === "ADMIN" ? auth : null;
 }
 
@@ -48,6 +67,17 @@ export async function getServerAuth(): Promise<TokenPayload | null> {
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifyToken(token);
+}
+
+export async function getVerifiedServerAuth(): Promise<TokenPayload | null> {
+  const auth = await getServerAuth();
+  if (!auth || !Number.isInteger(auth.sessionVersion)) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: auth.userId },
+    select: { role: true, sessionVersion: true },
+  });
+  if (!user || user.sessionVersion !== auth.sessionVersion) return null;
+  return { userId: auth.userId, role: user.role, sessionVersion: user.sessionVersion };
 }
 
 // Password-reset tokens are stateless JWTs (no extra DB table). A fingerprint
@@ -78,7 +108,7 @@ export function authCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
     maxAge: MAX_AGE,
     path: "/",
   };

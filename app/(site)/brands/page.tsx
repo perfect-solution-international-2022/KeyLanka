@@ -1,8 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getBrands } from "@/lib/queries";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Vehicle Brands | Key Lanka" };
+export const metadata = pageMetadata({
+  title: "Car Keys & Remotes by Vehicle Brand",
+  description:
+    "Find compatible car keys, smart remotes, shells, covers and transponders for leading vehicle brands available from Key Lanka in Sri Lanka.",
+  path: "/brands",
+});
 
 export default async function BrandsPage() {
   const brands = await getBrands().catch(() => []);

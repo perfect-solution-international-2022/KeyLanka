@@ -97,6 +97,7 @@ export function RefundPolicyContent() {
           <li>Locksmith Software</li>
           <li>Professional Locksmith Tools</li>
           <li>Security Devices</li>
+          <li>Transponder Chip</li>
         </ul>
         <p>
           These products are available only to approved KeyLanka Locksmith Merchants and are not available for sale
@@ -179,16 +180,49 @@ export function RefundPolicyContent() {
         <p>Customers should first contact the courier using the tracking information provided.</p>
         <p>KeyLanka.lk will assist where reasonably possible but is not responsible for courier delays after dispatch.</p>
 
-        <h2 className="text-xl font-semibold text-gray-900 pt-5">13. Incorrect or Damaged Products</h2>
-        <p>If you believe you have received an incorrect or damaged product, you must notify KeyLanka.lk within 24 hours of delivery.</p>
-        <p>Please provide:</p>
+        <h2 className="text-xl font-semibold text-gray-900 pt-5">
+          13. Courier Delivery &amp; Incorrect Products
+        </h2>
+        <p>
+          Once your order has been securely packed and handed over to the courier company, KeyLanka.lk&apos;s
+          responsibility for the shipment ends. Any loss, damage, delay or mishandling that occurs during transit
+          is the responsibility of the courier company.
+        </p>
+        <p>
+          Customers are advised to inspect the parcel upon delivery. If the package appears to be damaged, opened
+          or tampered with, please report the issue directly to the courier company before accepting the parcel
+          whenever possible.
+        </p>
+        <p>
+          If you receive an incorrect product due to an error by KeyLanka.lk, you must notify us within 24 hours of
+          delivery by providing:
+        </p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Order Number</li>
-          <li>Clear photographs of the product</li>
-          <li>Photographs of the packaging</li>
-          <li>Description of the issue</li>
+          <li>Clear photographs of the product received</li>
+          <li>Clear photographs of the parcel and packaging</li>
+          <li>A brief description of the issue</li>
         </ul>
-        <p>We will investigate the matter and provide an appropriate solution where required.</p>
+        <p>
+          After reviewing the information, we will provide an appropriate resolution if the error was made by
+          KeyLanka.lk.
+        </p>
+        <h3 className="font-semibold text-gray-900 pt-2">Important Notice</h3>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>
+            Once a parcel has been handed over to the courier company, KeyLanka.lk is not liable for any loss,
+            damage, delay or mishandling that occurs during transportation.
+          </li>
+          <li>
+            Any claims relating to courier damage, loss or delivery delays must be made directly with the courier
+            company.
+          </li>
+          <li>
+            Customers are responsible for providing the correct delivery address, contact number and recipient
+            details when placing an order.
+          </li>
+          <li>We recommend that customers inspect the package before accepting delivery whenever possible.</li>
+        </ul>
 
         <h2 className="text-xl font-semibold text-gray-900 pt-5">14. Manufacturing Defects</h2>
         <p>If you believe a product has a manufacturing defect, contact us before attempting installation, programming or modification.</p>

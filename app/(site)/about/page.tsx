@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { KeyRound, Wrench, Headphones, MapPin, Phone, Mail } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "About Us | Key Lanka" };
+export const metadata = pageMetadata({
+  title: "About Key Lanka",
+  description:
+    "Learn about Key Lanka, a trusted Sri Lankan supplier of automotive keys, remotes, locksmith tools and technical support for professionals and motorists.",
+  path: "/about",
+});
 
 const PILLARS = [
   {

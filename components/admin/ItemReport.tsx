@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import {
   Card,
   CardAction,
@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/api";
 import { exportToExcel } from "@/lib/export-excel";
+import { exportToPdf } from "@/lib/export-pdf";
 
 export interface ItemReportRow {
   id: number;
@@ -46,7 +47,15 @@ const chartConfig = {
   revenue: { label: "Revenue (Rs.)", color: "var(--color-brand)" },
 } satisfies ChartConfig;
 
-export function ItemReport({ items }: { items: ItemReportRow[] }) {
+export function ItemReport({
+  items,
+  rangeDays,
+  rangeLabel,
+}: {
+  items: ItemReportRow[];
+  rangeDays: number;
+  rangeLabel: string;
+}) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -66,8 +75,8 @@ export function ItemReport({ items }: { items: ItemReportRow[] }) {
     [items]
   );
 
-  function handleExport() {
-    exportToExcel("item-report", [
+  function handleExcelExport() {
+    exportToExcel(`item-report-${rangeDays}-days`, [
       {
         name: "Items",
         rows: filtered.map((i) => ({
@@ -84,12 +93,35 @@ export function ItemReport({ items }: { items: ItemReportRow[] }) {
     ]);
   }
 
+  function handlePdfExport() {
+    exportToPdf(`item-report-${rangeDays}-days`, `Item Report - ${rangeLabel}`, [
+      {
+        title: search.trim() ? `Items filtered by "${search.trim()}"` : "All Items",
+        columns: [
+          { key: "name", label: "Product", width: 180 },
+          { key: "sku", label: "SKU", width: 90 },
+          { key: "category", label: "Category", width: 105 },
+          { key: "brand", label: "Brand", width: 85 },
+          { key: "unitsSold", label: "Sold", width: 65, align: "right" },
+          { key: "revenue", label: "Revenue", width: 105, align: "right" },
+          { key: "stock", label: "Stock", width: 60, align: "right" },
+          { key: "price", label: "Price", width: 80, align: "right" },
+        ],
+        rows: filtered.map((item) => ({
+          ...item,
+          revenue: formatCurrency(item.revenue),
+          price: formatCurrency(item.price),
+        })),
+      },
+    ]);
+  }
+
   return (
     <div className="space-y-4">
       <Card className="@container/card">
         <CardHeader>
           <CardTitle>Top Selling Items</CardTitle>
-          <CardDescription>Revenue by product, best sellers first</CardDescription>
+          <CardDescription>Revenue by product for {rangeLabel}, best sellers first</CardDescription>
         </CardHeader>
         <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
           <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
@@ -116,10 +148,16 @@ export function ItemReport({ items }: { items: ItemReportRow[] }) {
               className="h-8 w-full sm:w-56"
             />
             <button
-              onClick={handleExport}
+              onClick={handleExcelExport}
               className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border rounded-md px-3 py-1.5 hover:bg-muted shrink-0"
             >
-              <Download size={13} /> Download Excel
+              <Download size={13} /> Download CSV
+            </button>
+            <button
+              onClick={handlePdfExport}
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-medium border rounded-md px-3 py-1.5 hover:bg-muted shrink-0"
+            >
+              <FileText size={13} /> Download PDF
             </button>
           </CardAction>
         </CardHeader>

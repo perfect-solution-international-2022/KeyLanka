@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
 
 export async function GET(req: NextRequest) {
-  const userId = getUserId(req);
+  const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const user = await prisma.user.findUnique({

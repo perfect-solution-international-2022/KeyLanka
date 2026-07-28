@@ -3,16 +3,16 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
 
-function scopeFilter(req: NextRequest) {
-  const userId = getUserId(req);
+async function scopeFilter(req: NextRequest) {
+  const userId = await getUserId(req);
   if (userId) return { userId };
   const sessionId = req.headers.get("x-session-id");
-  if (sessionId) return { sessionId };
+  if (sessionId && z.string().uuid().safeParse(sessionId).success) return { sessionId };
   return null;
 }
 
 export async function GET(req: NextRequest) {
-  const scope = scopeFilter(req);
+  const scope = await scopeFilter(req);
   if (!scope) return NextResponse.json([]);
   const items = await prisma.wishlistItem.findMany({
     where: scope,
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   const { productId } = parsed.data;
 
-  const scope = scopeFilter(req);
+  const scope = await scopeFilter(req);
   if (!scope) return NextResponse.json({ error: "Missing session" }, { status: 400 });
 
   const existing = await prisma.wishlistItem.findFirst({ where: { ...scope, productId } });

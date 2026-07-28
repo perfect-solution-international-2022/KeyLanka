@@ -1,4 +1,11 @@
-export const metadata = { title: "Technical Support | Key Lanka" };
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "Car Key & Locksmith Technical Support",
+  description:
+    "Get expert help choosing compatible car keys, remotes and locksmith tools or diagnosing automotive key programming issues in Sri Lanka.",
+  path: "/support",
+});
 
 export default function SupportPage() {
   return (
