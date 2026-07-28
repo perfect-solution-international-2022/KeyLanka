@@ -51,3 +51,35 @@ export async function releaseStock(tx: TxClient, items: { productId: number; qua
     });
   }
 }
+
+const STALE_ORDER_MINUTES = 30;
+
+/**
+ * OnePay orders are created (and stock reserved) before the customer reaches
+ * OnePay, since we can't reserve stock only on payment success without risking
+ * overselling the last unit. If the customer abandons checkout — closes the tab,
+ * hits back — instead of returning to /checkout/onepay-return, no webhook or
+ * return-page visit ever fires, so the order would sit as "pending" forever and
+ * its stock would stay locked. This sweeps those out on each admin orders fetch.
+ */
+export async function expireStaleOnepayOrders(prisma: PrismaClient) {
+  const cutoff = new Date(Date.now() - STALE_ORDER_MINUTES * 60 * 1000);
+  const stale = await prisma.order.findMany({
+    where: { paymentMethod: "onepay", paid: false, status: "pending", createdAt: { lt: cutoff } },
+    include: { items: true },
+  });
+  for (const order of stale) {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.updateMany({
+        where: { id: order.id, paid: false, status: "pending" },
+        data: { status: "cancelled", paymentStatusMessage: "Checkout abandoned before payment" },
+      });
+      if (updated.count === 1) {
+        await releaseStock(
+          tx,
+          order.items.map((item) => ({ productId: item.productId, quantity: item.quantity }))
+        );
+      }
+    });
+  }
+}
