@@ -22,9 +22,28 @@ export class InsufficientStockError extends Error {
  */
 export async function reserveStock(
   tx: TxClient,
-  items: { productId: number; quantity: number; name?: string; allowBackorder?: boolean }[]
+  items: { productId: number; variantId?: number | null; quantity: number; name?: string; allowBackorder?: boolean }[]
 ) {
   for (const item of items) {
+    if (item.variantId) {
+      if (item.allowBackorder) {
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { decrement: item.quantity } },
+        });
+        continue;
+      }
+      const result = await tx.productVariant.updateMany({
+        where: { id: item.variantId, stock: { gte: item.quantity } },
+        data: { stock: { decrement: item.quantity } },
+      });
+      if (result.count === 0) {
+        const variant = await tx.productVariant.findUnique({ where: { id: item.variantId }, select: { sku: true } });
+        throw new InsufficientStockError(item.name ?? variant?.sku ?? `variant #${item.variantId}`);
+      }
+      continue;
+    }
+
     if (item.allowBackorder) {
       await tx.product.update({
         where: { id: item.productId },
@@ -44,8 +63,18 @@ export async function reserveStock(
 }
 
 /** Reverses a previous reserveStock call, e.g. when a payment ultimately fails. */
-export async function releaseStock(tx: TxClient, items: { productId: number; quantity: number }[]) {
+export async function releaseStock(
+  tx: TxClient,
+  items: { productId: number; variantId?: number | null; quantity: number }[]
+) {
   for (const item of items) {
+    if (item.variantId) {
+      await tx.productVariant.update({
+        where: { id: item.variantId },
+        data: { stock: { increment: item.quantity } },
+      });
+      continue;
+    }
     await tx.product.update({
       where: { id: item.productId },
       data: { stock: { increment: item.quantity } },
@@ -114,7 +143,7 @@ export async function deleteExpiredUnpaidOnepayOrders(
       if (claimed.count === 1) {
         await releaseStock(
           tx,
-          order.items.map((item) => ({ productId: item.productId, quantity: item.quantity }))
+          order.items.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity }))
         );
         await tx.securityAuditLog.create({
           data: {

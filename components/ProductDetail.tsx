@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/api";
-import { getUnitPrice } from "@/lib/pricing";
+import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { useCart, useWishlist } from "@/app/providers";
 
 export default function ProductDetail({ product }: { product: Product }) {
@@ -17,17 +17,71 @@ export default function ProductDetail({ product }: { product: Product }) {
   const wishlist = useWishlist();
   const wishlisted = wishlist.isWishlisted(product.id);
   const rating = Math.round(Number(product.rating));
-  const [selectedImage, setSelectedImage] = useState(product.images?.[0] ?? "/products/placeholder-1.svg");
 
-  const hasWholesale = product.wholesalePrice != null;
-  const unitPrice = getUnitPrice(product, qty);
+  const isVariable = product.productType === "Variable Product" && (product.variants?.length ?? 0) > 0;
+
+  const attributeGroups = useMemo(() => {
+    if (!isVariable) return [];
+    const groups = new Map<number, { name: string; values: Map<number, string> }>();
+    for (const variant of product.variants ?? []) {
+      for (const vv of variant.values) {
+        const av = vv.attributeValue;
+        if (!av) continue;
+        if (!groups.has(av.attributeId)) groups.set(av.attributeId, { name: av.attribute?.name ?? "", values: new Map() });
+        groups.get(av.attributeId)!.values.set(av.id, av.value);
+      }
+    }
+    return Array.from(groups.entries()).map(([attributeId, g]) => ({
+      attributeId,
+      name: g.name,
+      values: Array.from(g.values.entries()).map(([id, value]) => ({ id, value })),
+    }));
+  }, [isVariable, product.variants]);
+
+  const [selectedValues, setSelectedValues] = useState<Record<number, number>>(() => {
+    const defaultVariant = product.variants?.find((v) => v.isDefault) ?? product.variants?.[0];
+    const initial: Record<number, number> = {};
+    for (const vv of defaultVariant?.values ?? []) {
+      if (vv.attributeValue) initial[vv.attributeValue.attributeId] = vv.attributeValue.id;
+    }
+    return initial;
+  });
+
+  const selectedVariant = useMemo(() => {
+    if (!isVariable) return null;
+    const selectedIds = new Set(Object.values(selectedValues));
+    return (
+      (product.variants ?? []).find((variant) => {
+        const variantValueIds = variant.values.map((v) => v.attributeValueId);
+        return variantValueIds.length === selectedIds.size && variantValueIds.every((id) => selectedIds.has(id));
+      }) ?? null
+    );
+  }, [isVariable, product.variants, selectedValues]);
+
+  const [selectedImage, setSelectedImage] = useState(product.images?.[0] ?? "/products/placeholder-1.svg");
+  const activeImage = selectedVariant?.image || selectedImage;
+
+  const priceSource = resolvePriceSource(product, selectedVariant);
+  const hasWholesale = priceSource.wholesalePrice != null;
+  const unitPrice = getUnitPrice(priceSource, qty);
   const isWholesaleActive = hasWholesale && qty >= product.wholesaleMinQty;
-  const unavailable = product.stock === 0 && !product.allowBackorder;
+  const displayStock = selectedVariant ? selectedVariant.stock : product.stock;
+  const displaySku = selectedVariant?.sku ?? product.sku;
+  const outOfStockStatus = selectedVariant ? selectedVariant.stockStatus === "out_of_stock" : product.stock === 0;
+  const unavailable = (isVariable && !selectedVariant) || (outOfStockStatus && displayStock === 0 && !product.allowBackorder);
+
+  function selectAttributeValue(attributeId: number, valueId: number) {
+    setSelectedValues((prev) => ({ ...prev, [attributeId]: valueId }));
+  }
 
   async function handleAddToCart() {
+    if (isVariable && !selectedVariant) {
+      toast.error("Please select all options first");
+      return;
+    }
     setBusyAction("cart");
     try {
-      await cart.addToCart(product.id, qty);
+      await cart.addToCart(product.id, qty, selectedVariant?.id);
       toast.success("Added to cart");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not add this product to the cart");
@@ -37,9 +91,13 @@ export default function ProductDetail({ product }: { product: Product }) {
   }
 
   async function handleBuyNow() {
+    if (isVariable && !selectedVariant) {
+      toast.error("Please select all options first");
+      return;
+    }
     setBusyAction("buy");
     try {
-      await cart.addToCart(product.id, qty);
+      await cart.addToCart(product.id, qty, selectedVariant?.id);
       router.push("/checkout");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start checkout");
@@ -61,7 +119,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             </span>
           )}
           <Image
-            src={selectedImage}
+            src={activeImage}
             alt={product.imageAlt || product.name}
             fill
             className="object-contain p-12"
@@ -108,7 +166,7 @@ export default function ProductDetail({ product }: { product: Product }) {
 
         {hasWholesale && (
           <p className="text-sm text-brand mt-1.5">
-            Buy {product.wholesaleMinQty}+ units for {formatCurrency(product.wholesalePrice!)} each
+            Buy {product.wholesaleMinQty}+ units for {formatCurrency(priceSource.wholesalePrice!)} each
             {isWholesaleActive ? " — applied to your order below" : ""}
           </p>
         )}
@@ -117,14 +175,43 @@ export default function ProductDetail({ product }: { product: Product }) {
 
         <dl className="grid grid-cols-2 gap-2 text-sm mt-4 text-gray-600">
           <dt className="text-gray-400">SKU</dt>
-          <dd>{product.sku}</dd>
+          <dd>{displaySku}</dd>
           <dt className="text-gray-400">Category</dt>
           <dd>{product.category?.name}</dd>
           <dt className="text-gray-400">Availability</dt>
-          <dd className={product.stock > 0 || product.allowBackorder ? "text-green-600" : "text-red-600"}>
-            {product.stock > 0 ? `In Stock (${product.stock})` : product.allowBackorder ? "Available on backorder" : "Out of Stock"}
+          <dd className={displayStock > 0 || product.allowBackorder ? "text-green-600" : "text-red-600"}>
+            {displayStock > 0 ? `In Stock (${displayStock})` : product.allowBackorder ? "Available on backorder" : "Out of Stock"}
           </dd>
         </dl>
+
+        {isVariable && attributeGroups.length > 0 && (
+          <div className="mt-5 space-y-4">
+            {attributeGroups.map((group) => (
+              <div key={group.attributeId}>
+                <p className="text-sm font-medium text-gray-900 mb-2">{group.name}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.values.map((value) => (
+                    <button
+                      key={value.id}
+                      type="button"
+                      onClick={() => selectAttributeValue(group.attributeId, value.id)}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
+                        selectedValues[group.attributeId] === value.id
+                          ? "border-brand bg-brand-light text-brand"
+                          : "border-gray-300 text-gray-700 hover:border-brand/50"
+                      }`}
+                    >
+                      {value.value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {!selectedVariant && (
+              <p className="text-xs text-red-600">Select all options to see price and availability.</p>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between gap-3">

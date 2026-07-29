@@ -56,7 +56,9 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
               <div key={item.id} className="flex items-center justify-between px-4 py-3 text-sm">
                 <div>
                   <div className="font-medium">{item.name}</div>
-                  <div className="text-muted-foreground text-xs">Qty {item.quantity}</div>
+                  <div className="text-muted-foreground text-xs">
+                    {item.sku ? `SKU ${item.sku} · ` : ""}Qty {item.quantity}
+                  </div>
                 </div>
                 <div>{formatCurrency(Number(item.price) * item.quantity)}</div>
               </div>

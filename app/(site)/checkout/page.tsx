@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CreditCard, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
 import { useAuth, useCart } from "@/app/providers";
 import { formatCurrency } from "@/lib/api";
-import { getUnitPrice, getLineTotal } from "@/lib/pricing";
+import { getUnitPrice, getLineTotal, resolvePriceSource } from "@/lib/pricing";
 import { LegalPolicyLink } from "@/components/legal/LegalPolicyLink";
 import { LegalPolicyDialog, type LegalPolicy } from "@/components/legal/LegalPolicyDialog";
 
@@ -243,30 +243,38 @@ export default function CheckoutPage() {
         <aside className="bg-white border border-gray-200 rounded-xl p-6 lg:sticky lg:top-24">
           <h2 className="font-semibold text-gray-900 mb-4">Order Summary</h2>
           <div className="space-y-3 mb-4 max-h-72 overflow-y-auto pr-1">
-            {cart.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-3">
-                <div className="relative h-14 w-14 rounded-lg bg-gray-50 border border-gray-100 shrink-0 overflow-hidden">
-                  <Image
-                    src={item.product.images?.[0] ?? "/products/placeholder-1.svg"}
-                    alt={item.product.name}
-                    fill
-                    className="object-contain p-1.5"
-                  />
-                  <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-900 text-white text-[10px] flex items-center justify-center">
-                    {item.quantity}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-gray-900 line-clamp-1">{item.product.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {formatCurrency(getUnitPrice(item.product, item.quantity))} each
+            {cart.items.map((item) => {
+              const priceSource = resolvePriceSource(item.product, item.variant);
+              const variantLabel = item.variant?.values
+                .map((v) => v.attributeValue?.value)
+                .filter(Boolean)
+                .join(" / ");
+              return (
+                <div key={item.id} className="flex items-center gap-3">
+                  <div className="relative h-14 w-14 rounded-lg bg-gray-50 border border-gray-100 shrink-0 overflow-hidden">
+                    <Image
+                      src={item.variant?.image || item.product.images?.[0] || "/products/placeholder-1.svg"}
+                      alt={item.product.name}
+                      fill
+                      className="object-contain p-1.5"
+                    />
+                    <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-900 text-white text-[10px] flex items-center justify-center">
+                      {item.quantity}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-gray-900 line-clamp-1">{item.product.name}</div>
+                    {variantLabel && <div className="text-xs text-gray-400">{variantLabel}</div>}
+                    <div className="text-xs text-gray-500">
+                      {formatCurrency(getUnitPrice(priceSource, item.quantity))} each
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900 shrink-0">
+                    {formatCurrency(getLineTotal(priceSource, item.quantity))}
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-gray-900 shrink-0">
-                  {formatCurrency(getLineTotal(item.product, item.quantity))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="border-t border-gray-100 pt-4 space-y-2">
             <div className="flex justify-between text-sm text-gray-500">

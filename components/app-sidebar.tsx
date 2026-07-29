@@ -31,6 +31,7 @@ import {
   TruckIcon,
   ShieldCheckIcon,
   ConeIcon,
+  ListTreeIcon,
 } from "lucide-react"
 
 const data = {
@@ -72,6 +73,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Products", url: "/admin/products", icon: <PackageIcon /> },
     { title: "Categories", url: "/admin/categories", icon: <FolderTreeIcon /> },
     { title: "Brands", url: "/admin/brands", icon: <TagIcon /> },
+    { title: "Attributes", url: "/admin/attributes", icon: <ListTreeIcon /> },
     { title: "Services", url: "/admin/services", icon: <WrenchIcon /> },
     { title: "Orders", url: "/admin/orders", icon: <ShoppingCartIcon />, badge: badgeCounts.pendingOrders },
     { title: "Customers", url: "/admin/customers", icon: <UsersIcon /> },

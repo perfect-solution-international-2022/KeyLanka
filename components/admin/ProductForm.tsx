@@ -1,22 +1,69 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { toast } from "sonner";
-import { adminApi, AdminProduct, AdminProductInput, AdminCategory, AdminBrand } from "@/lib/admin-api";
+import {
+  adminApi,
+  AdminProduct,
+  AdminProductInput,
+  AdminCategory,
+  AdminBrand,
+  AdminAttribute,
+  AdminProductVariant,
+} from "@/lib/admin-api";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const BADGES = ["", "HOT", "NEW"];
-type ProductTab = "general" | "inventory" | "seo";
+type ProductTab = "general" | "attributes" | "variations" | "inventory" | "seo";
 
-const TABS: { id: ProductTab; label: string }[] = [
+const SIMPLE_TABS: { id: ProductTab; label: string }[] = [
   { id: "general", label: "General" },
   { id: "inventory", label: "Inventory" },
   { id: "seo", label: "SEO" },
 ];
+
+const VARIABLE_TABS: { id: ProductTab; label: string }[] = [
+  { id: "general", label: "General" },
+  { id: "attributes", label: "Attributes" },
+  { id: "variations", label: "Variations" },
+  { id: "inventory", label: "Inventory" },
+  { id: "seo", label: "SEO" },
+];
+
+function cartesian(groups: number[][]): number[][] {
+  let combos: number[][] = [[]];
+  for (const g of groups) combos = combos.flatMap((c) => g.map((id) => [...c, id]));
+  return combos;
+}
+
+function blankVariant(base: {
+  sku: string;
+  price: string;
+  wholesalePrice: string;
+  lowStockThreshold: string;
+}, attributeValueIds: number[], isDefault: boolean): AdminProductVariant {
+  return {
+    sku: base.sku,
+    price: base.price || "0",
+    compareAtPrice: null,
+    wholesalePrice: base.wholesalePrice || null,
+    productCost: null,
+    stockStatus: "in_stock",
+    stock: 0,
+    lowStockThreshold: Number(base.lowStockThreshold) || 10,
+    weightKg: null,
+    lengthCm: null,
+    widthCm: null,
+    heightCm: null,
+    image: null,
+    isDefault,
+    attributeValueIds,
+  };
+}
 
 function slugify(value: string) {
   return value
@@ -72,6 +119,32 @@ export function ProductForm({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const isVariable = productType === "Variable Product";
+
+  const [attributes, setAttributes] = useState<AdminAttribute[]>([]);
+  const [selectedAttrValues, setSelectedAttrValues] = useState<Record<number, number[]>>({});
+  const [variants, setVariants] = useState<AdminProductVariant[]>(product?.variants ?? []);
+
+  useEffect(() => {
+    adminApi.getAttributes().then((data) => {
+      setAttributes(data);
+      if (product?.variants?.length) {
+        const valueToAttr = new Map<number, number>();
+        for (const attr of data) for (const v of attr.values) valueToAttr.set(v.id, attr.id);
+        const initial: Record<number, number[]> = {};
+        for (const variant of product.variants) {
+          for (const valueId of variant.attributeValueIds) {
+            const attrId = valueToAttr.get(valueId);
+            if (attrId === undefined) continue;
+            initial[attrId] = initial[attrId] ? [...new Set([...initial[attrId], valueId])] : [valueId];
+          }
+        }
+        setSelectedAttrValues(initial);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const flatCategories = categories.flatMap((category) => [category, ...(category.children ?? [])]);
   const featuredImage = images.slice(0, 1);
   const galleryImages = images.slice(1);
@@ -81,14 +154,80 @@ export function ProductForm({
   const previewSlug = slug || "product-name";
   const stockStatus = Number(stock) > 0 ? "in-stock" : "out-of-stock";
 
+  const TABS = isVariable ? VARIABLE_TABS : SIMPLE_TABS;
+
   const tabIds = useMemo(
     () => ({
       general: "product-tab-general",
+      attributes: "product-tab-attributes",
+      variations: "product-tab-variations",
       inventory: "product-tab-inventory",
       seo: "product-tab-seo",
     }),
     []
   );
+
+  function toggleAttrValue(attributeId: number, valueId: number) {
+    setSelectedAttrValues((prev) => {
+      const current = prev[attributeId] ?? [];
+      const next = current.includes(valueId) ? current.filter((id) => id !== valueId) : [...current, valueId];
+      return { ...prev, [attributeId]: next };
+    });
+  }
+
+  function generateVariations() {
+    const chosenGroups = Object.values(selectedAttrValues).filter((ids) => ids.length > 0);
+    if (chosenGroups.length === 0) {
+      setVariants([]);
+      return;
+    }
+    const combos = cartesian(chosenGroups);
+    const existingByKey = new Map(variants.map((v) => [[...v.attributeValueIds].sort((a, b) => a - b).join(","), v]));
+
+    const next = combos.map((combo, index) => {
+      const key = [...combo].sort((a, b) => a - b).join(",");
+      const existing = existingByKey.get(key);
+      if (existing) return existing;
+      return blankVariant(
+        { sku: sku || "VAR", price, wholesalePrice, lowStockThreshold },
+        combo,
+        variants.length === 0 && index === 0
+      );
+    });
+    if (!next.some((v) => v.isDefault) && next.length) next[0] = { ...next[0], isDefault: true };
+    setVariants(next);
+  }
+
+  function updateVariant(index: number, patch: Partial<AdminProductVariant>) {
+    setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, ...patch } : v)));
+  }
+
+  function removeVariant(index: number) {
+    setVariants((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length && !next.some((v) => v.isDefault)) next[0] = { ...next[0], isDefault: true };
+      return next;
+    });
+  }
+
+  function setDefaultVariant(index: number) {
+    setVariants((prev) => prev.map((v, i) => ({ ...v, isDefault: i === index })));
+  }
+
+  function attributeValueLabel(valueId: number): string {
+    for (const attr of attributes) {
+      const value = attr.values.find((v) => v.id === valueId);
+      if (value) return value.value;
+    }
+    return "";
+  }
+
+  useEffect(() => {
+    if (!isVariable && (activeTab === "attributes" || activeTab === "variations")) {
+      setActiveTab("general");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVariable]);
 
   function updateFeaturedImage(next: string[]) {
     setImages(next.length ? [next[0], ...galleryImages] : galleryImages);
@@ -127,6 +266,29 @@ export function ProductForm({
       setError("Wholesale activation quantity must be at least 1.");
       return;
     }
+    if (isVariable) {
+      if (variants.length === 0) {
+        setActiveTab("variations");
+        setError("Select attributes and generate at least one variation.");
+        return;
+      }
+      const variantSkus = variants.map((v) => v.sku.trim());
+      if (variantSkus.some((s) => !s)) {
+        setActiveTab("variations");
+        setError("Every variation needs a SKU.");
+        return;
+      }
+      if (new Set(variantSkus).size !== variantSkus.length) {
+        setActiveTab("variations");
+        setError("Variation SKUs must be unique.");
+        return;
+      }
+      if (variants.some((v) => !v.price || Number(v.price) <= 0)) {
+        setActiveTab("variations");
+        setError("Every variation needs a regular price.");
+        return;
+      }
+    }
 
     setLoading(true);
     const payload: AdminProductInput = {
@@ -153,6 +315,22 @@ export function ProductForm({
       productType: productType || null,
       categoryId: Number(categoryId),
       brandId: brandId ? Number(brandId) : null,
+      variants: isVariable
+        ? variants.map((v) => ({
+            ...v,
+            sku: v.sku.trim(),
+            price: Number(v.price),
+            compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
+            wholesalePrice: v.wholesalePrice ? Number(v.wholesalePrice) : null,
+            productCost: v.productCost ? Number(v.productCost) : null,
+            stock: Number(v.stock),
+            lowStockThreshold: Number(v.lowStockThreshold),
+            weightKg: v.weightKg ? Number(v.weightKg) : null,
+            lengthCm: v.lengthCm ? Number(v.lengthCm) : null,
+            widthCm: v.widthCm ? Number(v.widthCm) : null,
+            heightCm: v.heightCm ? Number(v.heightCm) : null,
+          }))
+        : [],
     };
 
     try {
@@ -353,6 +531,277 @@ export function ProductForm({
               Show in Featured Products
             </label>
           </section>
+
+          {isVariable && (
+            <section
+              id={`${tabIds.attributes}-panel`}
+              role="tabpanel"
+              aria-labelledby={tabIds.attributes}
+              hidden={activeTab !== "attributes"}
+              className="space-y-4 py-6"
+            >
+              <p className="text-sm text-muted-foreground">Select attribute values, then generate variations.</p>
+              {attributes.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  No attributes yet.{" "}
+                  <a href="/admin/attributes" target="_blank" rel="noreferrer" className="text-brand underline">
+                    Add attributes like Color and Size
+                  </a>{" "}
+                  first.
+                </p>
+              ) : (
+                attributes.map((attr) => (
+                  <div key={attr.id} className="rounded-xl border border-border p-4">
+                    <p className="text-sm font-semibold">{attr.name}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {attr.values.map((v) => {
+                        const selected = (selectedAttrValues[attr.id] ?? []).includes(v.id);
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => toggleAttrValue(attr.id, v.id)}
+                            className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                              selected
+                                ? "border-brand bg-brand/10 text-brand"
+                                : "border-border text-foreground hover:border-brand/50"
+                            }`}
+                          >
+                            {v.value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </section>
+          )}
+
+          {isVariable && (
+            <section
+              id={`${tabIds.variations}-panel`}
+              role="tabpanel"
+              aria-labelledby={tabIds.variations}
+              hidden={activeTab !== "variations"}
+              className="space-y-4 py-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Product Variations</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const hasSelection = Object.values(selectedAttrValues).some((ids) => ids.length > 0);
+                    if (!hasSelection) {
+                      setError("Please select attributes first in the Attributes tab.");
+                      return;
+                    }
+                    setError("");
+                    generateVariations();
+                  }}
+                  className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+                >
+                  Generate Variations
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6 rounded-lg border border-border p-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={allowBackorder}
+                    onChange={(event) => setAllowBackorder(event.target.checked)}
+                    className="h-4 w-4 accent-brand"
+                  />
+                  Allow backorder when out of stock
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={soldIndividually}
+                    onChange={(event) => setSoldIndividually(event.target.checked)}
+                    className="h-4 w-4 accent-brand"
+                  />
+                  Sold individually (limit one per order)
+                </label>
+              </div>
+
+              {variants.map((variant, index) => (
+                <details key={index} open={index === 0} className="group rounded-lg border border-border">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold">Variation #{index + 1}:</span>
+                      {variant.attributeValueIds.map((valueId) => (
+                        <span key={valueId} className="rounded-full bg-sky-100 px-2.5 py-1 text-xs text-sky-700">
+                          {attributeValueLabel(valueId)}
+                        </span>
+                      ))}
+                      {variant.isDefault && (
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          removeVariant(index);
+                        }}
+                        aria-label={`Remove variation ${index + 1}`}
+                        className="text-destructive hover:text-destructive/80"
+                      >
+                        <X size={16} />
+                      </button>
+                      <span className="text-muted-foreground transition-transform group-open:rotate-180">⌄</span>
+                    </div>
+                  </summary>
+
+                  <div className="border-t border-border p-4">
+                    <label className="mb-4 flex cursor-pointer items-center gap-2 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={variant.isDefault}
+                        onChange={(event) => {
+                          if (event.target.checked) setDefaultVariant(index);
+                        }}
+                        className="h-4 w-4 accent-brand"
+                      />
+                      Is Default?
+                    </label>
+
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <Label>SKU</Label>
+                        <Input value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Regular Price</Label>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step="0.01"
+                          value={variant.price}
+                          onChange={(event) => updateVariant(index, { price: event.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Sale Price</Label>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step="0.01"
+                          value={variant.compareAtPrice ?? ""}
+                          onChange={(event) => updateVariant(index, { compareAtPrice: event.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Wholesale Price</Label>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step="0.01"
+                          value={variant.wholesalePrice ?? ""}
+                          onChange={(event) => updateVariant(index, { wholesalePrice: event.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Product Cost</Label>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step="0.01"
+                          value={variant.productCost ?? ""}
+                          onChange={(event) => updateVariant(index, { productCost: event.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Stock Status</Label>
+                        <select
+                          value={variant.stockStatus}
+                          onChange={(event) => updateVariant(index, { stockStatus: event.target.value })}
+                          className={selectClass}
+                        >
+                          <option value="in_stock">In Stock</option>
+                          <option value="out_of_stock">Out of Stock</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Stock Quantity</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={variant.stock}
+                          onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Low Stock Threshold</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={variant.lowStockThreshold}
+                          onChange={(event) => updateVariant(index, { lowStockThreshold: Number(event.target.value) })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Weight (kg)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={variant.weightKg ?? ""}
+                          onChange={(event) => updateVariant(index, { weightKg: event.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Length (cm)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={variant.lengthCm ?? ""}
+                          onChange={(event) => updateVariant(index, { lengthCm: event.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Width (cm)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={variant.widthCm ?? ""}
+                          onChange={(event) => updateVariant(index, { widthCm: event.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Height (cm)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={variant.heightCm ?? ""}
+                          onChange={(event) => updateVariant(index, { heightCm: event.target.value || null })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-1.5">
+                      <Label>Variation Image</Label>
+                      <ImageUploader
+                        images={variant.image ? [variant.image] : []}
+                        onChange={(imgs) => updateVariant(index, { image: imgs[0] ?? null })}
+                      />
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </section>
+          )}
 
           <section
             id={`${tabIds.inventory}-panel`}

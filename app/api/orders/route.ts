@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
 import { InsufficientStockError, reserveStock } from "@/lib/inventory";
-import { getUnitPrice } from "@/lib/pricing";
+import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { formatOrderNumber } from "@/lib/order-number";
 import { sendMail, renderOrderConfirmationEmail } from "@/lib/mail";
 import { getShippingCost } from "@/lib/queries";
@@ -41,17 +41,22 @@ export async function POST(req: NextRequest) {
 
   const cartItems = await prisma.cartItem.findMany({
     where: { userId },
-    include: { product: true },
+    include: { product: true, variant: true },
   });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
 
   const unitPrices = cartItems.map((ci) =>
     getUnitPrice(
-      {
-        price: Number(ci.product.price),
-        wholesalePrice: ci.product.wholesalePrice != null ? Number(ci.product.wholesalePrice) : null,
-        wholesaleMinQty: ci.product.wholesaleMinQty,
-      },
+      resolvePriceSource(
+        {
+          price: Number(ci.product.price),
+          wholesalePrice: ci.product.wholesalePrice != null ? Number(ci.product.wholesalePrice) : null,
+          wholesaleMinQty: ci.product.wholesaleMinQty,
+        },
+        ci.variant
+          ? { price: Number(ci.variant.price), wholesalePrice: ci.variant.wholesalePrice != null ? Number(ci.variant.wholesalePrice) : null }
+          : null
+      ),
       ci.quantity
     )
   );
@@ -65,6 +70,7 @@ export async function POST(req: NextRequest) {
         tx,
         cartItems.map((ci) => ({
           productId: ci.productId,
+          variantId: ci.variantId,
           quantity: ci.quantity,
           name: ci.product.name,
           allowBackorder: ci.product.allowBackorder,
@@ -86,7 +92,9 @@ export async function POST(req: NextRequest) {
           items: {
             create: cartItems.map((ci, i) => ({
               productId: ci.productId,
+              variantId: ci.variantId,
               name: ci.product.name,
+              sku: ci.variant?.sku ?? ci.product.sku,
               price: unitPrices[i],
               quantity: ci.quantity,
             })),

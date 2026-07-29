@@ -128,7 +128,11 @@ export async function getFeaturedProducts(limit = 8, options?: { locksmithAuthor
 export async function getProductBySlug(slug: string) {
   const product = await prisma.product.findUnique({
     where: { slug },
-    include: { category: { include: { parent: true } }, brand: true },
+    include: {
+      category: { include: { parent: true } },
+      brand: true,
+      variants: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
+    },
   });
   return product ? serialize<Product>(product) : null;
 }

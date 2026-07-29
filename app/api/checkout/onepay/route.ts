@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
 import { createCheckoutLink } from "@/lib/onepay";
 import { InsufficientStockError, releaseStock, reserveStock } from "@/lib/inventory";
-import { getUnitPrice } from "@/lib/pricing";
+import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { getShippingCost } from "@/lib/queries";
 
 const schema = z.object({
@@ -27,18 +27,23 @@ export async function POST(req: NextRequest) {
 
   const [user, cartItems] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
-    prisma.cartItem.findMany({ where: { userId }, include: { product: true } }),
+    prisma.cartItem.findMany({ where: { userId }, include: { product: true, variant: true } }),
   ]);
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
 
   const unitPrices = cartItems.map((ci) =>
     getUnitPrice(
-      {
-        price: Number(ci.product.price),
-        wholesalePrice: ci.product.wholesalePrice != null ? Number(ci.product.wholesalePrice) : null,
-        wholesaleMinQty: ci.product.wholesaleMinQty,
-      },
+      resolvePriceSource(
+        {
+          price: Number(ci.product.price),
+          wholesalePrice: ci.product.wholesalePrice != null ? Number(ci.product.wholesalePrice) : null,
+          wholesaleMinQty: ci.product.wholesaleMinQty,
+        },
+        ci.variant
+          ? { price: Number(ci.variant.price), wholesalePrice: ci.variant.wholesalePrice != null ? Number(ci.variant.wholesalePrice) : null }
+          : null
+      ),
       ci.quantity
     )
   );
@@ -57,6 +62,7 @@ export async function POST(req: NextRequest) {
         tx,
         cartItems.map((ci) => ({
           productId: ci.productId,
+          variantId: ci.variantId,
           quantity: ci.quantity,
           name: ci.product.name,
           allowBackorder: ci.product.allowBackorder,
@@ -80,7 +86,9 @@ export async function POST(req: NextRequest) {
           items: {
             create: cartItems.map((ci, i) => ({
               productId: ci.productId,
+              variantId: ci.variantId,
               name: ci.product.name,
+              sku: ci.variant?.sku ?? ci.product.sku,
               price: unitPrices[i],
               quantity: ci.quantity,
             })),
@@ -128,7 +136,7 @@ export async function POST(req: NextRequest) {
     await prisma.$transaction(async (tx) => {
       await releaseStock(
         tx,
-        cartItems.map((ci) => ({ productId: ci.productId, quantity: ci.quantity }))
+        cartItems.map((ci) => ({ productId: ci.productId, variantId: ci.variantId, quantity: ci.quantity }))
       );
       await tx.order.update({ where: { id: orderId }, data: { status: "cancelled" } });
     });

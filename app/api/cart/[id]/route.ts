@@ -11,7 +11,7 @@ async function ownsItem(req: NextRequest, id: number) {
   if (!userId && !guestSession) return null;
   return prisma.cartItem.findFirst({
     where: { id, ...(userId ? { userId } : { sessionId: guestSession! }) },
-    include: { product: true },
+    include: { product: true, variant: true },
   });
 }
 
@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const item = await prisma.cartItem.update({
     where: { id },
     data: { quantity: currentItem.product.soldIndividually ? 1 : parsed.data.quantity },
-    include: { product: true },
+    include: { product: true, variant: true },
   });
   return NextResponse.json(item);
 }

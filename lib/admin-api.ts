@@ -1,3 +1,54 @@
+export interface AdminAttributeValue {
+  id: number;
+  attributeId: number;
+  value: string;
+}
+
+export interface AdminAttribute {
+  id: number;
+  name: string;
+  slug: string;
+  values: AdminAttributeValue[];
+}
+
+export interface AdminProductVariant {
+  id?: number;
+  sku: string;
+  price: string;
+  compareAtPrice: string | null;
+  wholesalePrice: string | null;
+  productCost: string | null;
+  stockStatus: string;
+  stock: number;
+  lowStockThreshold: number;
+  weightKg: string | null;
+  lengthCm: string | null;
+  widthCm: string | null;
+  heightCm: string | null;
+  image: string | null;
+  isDefault: boolean;
+  attributeValueIds: number[];
+}
+
+export interface AdminProductVariantInput {
+  id?: number;
+  sku: string;
+  price: number;
+  compareAtPrice?: number | null;
+  wholesalePrice?: number | null;
+  productCost?: number | null;
+  stockStatus: string;
+  stock: number;
+  lowStockThreshold: number;
+  weightKg?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  image?: string | null;
+  isDefault: boolean;
+  attributeValueIds: number[];
+}
+
 export interface AdminProduct {
   id: number;
   name: string;
@@ -27,6 +78,7 @@ export interface AdminProduct {
   brandId: number | null;
   category?: { id: number; name: string };
   brand?: { id: number; name: string } | null;
+  variants?: AdminProductVariant[];
 }
 
 export interface AdminProductInput {
@@ -55,6 +107,7 @@ export interface AdminProductInput {
   productType?: string | null;
   categoryId: number;
   brandId?: number | null;
+  variants?: AdminProductVariantInput[];
 }
 
 export interface AdminCategory {
@@ -99,7 +152,7 @@ export interface AdminOrder {
   paid: boolean;
   createdAt: string;
   user: { id: number; name: string; email: string };
-  items: { id: number; name: string; price: string; quantity: number; productId: number }[];
+  items: { id: number; name: string; sku: string | null; price: string; quantity: number; productId: number; variantId: number | null }[];
 }
 
 export interface AdminCustomer {
@@ -176,6 +229,15 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
+  // attributes
+  getAttributes: () => request<AdminAttribute[]>("/attributes"),
+  createAttribute: (data: { name: string; values: string[] }) =>
+    request<AdminAttribute>("/attributes", { method: "POST", body: JSON.stringify(data) }),
+  updateAttribute: (id: number, data: { name?: string; addValues?: string[] }) =>
+    request<AdminAttribute>(`/attributes/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteAttribute: (id: number) => request(`/attributes/${id}`, { method: "DELETE" }),
+  deleteAttributeValue: (id: number) => request(`/attributes/values/${id}`, { method: "DELETE" }),
 
   // products
   getProducts: (search?: string) => request<AdminProduct[]>(`/products${search ? `?search=${encodeURIComponent(search)}` : ""}`),

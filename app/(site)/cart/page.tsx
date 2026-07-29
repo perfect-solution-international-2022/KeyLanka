@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/providers";
 import { formatCurrency } from "@/lib/api";
-import { getUnitPrice, getLineTotal } from "@/lib/pricing";
+import { getUnitPrice, getLineTotal, resolvePriceSource } from "@/lib/pricing";
 
 export default function CartPage() {
   const cart = useCart();
@@ -31,10 +31,15 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Shopping Cart</h1>
         <div className="space-y-4">
           {cart.items.map((item) => {
-            const unitPrice = getUnitPrice(item.product, item.quantity);
+            const priceSource = resolvePriceSource(item.product, item.variant);
+            const unitPrice = getUnitPrice(priceSource, item.quantity);
             const isWholesale =
-              item.product.wholesalePrice != null &&
+              priceSource.wholesalePrice != null &&
               item.quantity >= item.product.wholesaleMinQty;
+            const variantLabel = item.variant?.values
+              .map((v) => v.attributeValue?.value)
+              .filter(Boolean)
+              .join(" / ");
             return (
               <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-4 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center gap-4 min-w-0">
@@ -50,6 +55,7 @@ export default function CartPage() {
                     <Link href={`/product/${item.product.slug}`} className="font-medium text-gray-900 hover:text-brand line-clamp-1">
                       {item.product.name}
                     </Link>
+                    {variantLabel && <p className="text-xs text-gray-500 mt-0.5">{variantLabel}</p>}
                     <div className="text-sm text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
                       {formatCurrency(unitPrice)}
                       {isWholesale && (
@@ -74,7 +80,7 @@ export default function CartPage() {
                     </button>
                   </div>}
                   <div className="w-20 text-right font-semibold text-gray-900 shrink-0">
-                    {formatCurrency(getLineTotal(item.product, item.quantity))}
+                    {formatCurrency(getLineTotal(priceSource, item.quantity))}
                   </div>
                   <button onClick={() => cart.removeItem(item.id)} className="text-gray-400 hover:text-brand text-sm shrink-0">
                     Remove

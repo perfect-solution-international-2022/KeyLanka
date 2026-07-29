@@ -3,11 +3,15 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
+import { variantSchema, saveVariants } from "@/lib/product-variants";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
-  const product = await prisma.product.findUnique({ where: { id: Number(id) } });
+  const product = await prisma.product.findUnique({
+    where: { id: Number(id) },
+    include: { variants: { include: { values: true } } },
+  });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(product);
 }
@@ -38,6 +42,7 @@ const updateSchema = z.object({
   productType: z.string().nullable().optional(),
   categoryId: z.number(),
   brandId: z.number().nullable().optional(),
+  variants: z.array(variantSchema).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -60,35 +65,50 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "URL slug already in use" }, { status: 409 });
   }
 
-  const product = await prisma.product.update({
-    where: { id: Number(id) },
-    data: {
-      name: data.name,
-      slug,
-      sku: data.sku,
-      price: data.price,
-      compareAtPrice: data.compareAtPrice ?? null,
-      wholesalePrice: data.wholesalePrice ?? null,
-      wholesaleMinQty: data.wholesaleMinQty ?? 10,
-      stock: data.stock,
-      lowStockThreshold: data.lowStockThreshold ?? 10,
-      allowBackorder: data.allowBackorder ?? false,
-      soldIndividually: data.soldIndividually ?? false,
-      rating: data.rating ?? 0,
-      reviewCount: data.reviewCount ?? 0,
-      badge: data.badge || null,
-      featured: data.featured ?? false,
-      shortDescription: data.shortDescription || null,
-      description: data.description || null,
-      seoTitle: data.seoTitle || null,
-      metaDescription: data.metaDescription || null,
-      focusKeywords: data.focusKeywords || null,
-      imageAlt: data.imageAlt || null,
-      images: data.images,
-      productType: data.productType || null,
-      categoryId: data.categoryId,
-      brandId: data.brandId ?? null,
-    },
+  if (data.variants?.length) {
+    const variantSkus = data.variants.map((v) => v.sku);
+    if (new Set(variantSkus).size !== variantSkus.length) {
+      return NextResponse.json({ error: "Variation SKUs must be unique" }, { status: 400 });
+    }
+    const clashingVariant = await prisma.productVariant.findFirst({
+      where: { sku: { in: variantSkus }, productId: { not: Number(id) } },
+    });
+    if (clashingVariant) return NextResponse.json({ error: "A variation SKU is already in use" }, { status: 409 });
+  }
+
+  const product = await prisma.$transaction(async (tx) => {
+    const updated = await tx.product.update({
+      where: { id: Number(id) },
+      data: {
+        name: data.name,
+        slug,
+        sku: data.sku,
+        price: data.price,
+        compareAtPrice: data.compareAtPrice ?? null,
+        wholesalePrice: data.wholesalePrice ?? null,
+        wholesaleMinQty: data.wholesaleMinQty ?? 10,
+        stock: data.stock,
+        lowStockThreshold: data.lowStockThreshold ?? 10,
+        allowBackorder: data.allowBackorder ?? false,
+        soldIndividually: data.soldIndividually ?? false,
+        rating: data.rating ?? 0,
+        reviewCount: data.reviewCount ?? 0,
+        badge: data.badge || null,
+        featured: data.featured ?? false,
+        shortDescription: data.shortDescription || null,
+        description: data.description || null,
+        seoTitle: data.seoTitle || null,
+        metaDescription: data.metaDescription || null,
+        focusKeywords: data.focusKeywords || null,
+        imageAlt: data.imageAlt || null,
+        images: data.images,
+        productType: data.productType || null,
+        categoryId: data.categoryId,
+        brandId: data.brandId ?? null,
+      },
+    });
+    await saveVariants(tx, updated.id, data.variants ?? []);
+    return updated;
   });
 
   return NextResponse.json(product);

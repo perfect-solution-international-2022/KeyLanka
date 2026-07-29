@@ -32,43 +32,100 @@ model Brand {
 }
 
 model Product {
-  id                Int            @id @default(autoincrement())
+  id                Int              @id @default(autoincrement())
   name              String
-  slug              String         @unique
-  sku               String         @unique
-  price             Decimal        @db.Decimal(10, 2)
-  compareAtPrice    Decimal?       @db.Decimal(10, 2)
-  wholesalePrice    Decimal?       @db.Decimal(10, 2)
-  wholesaleMinQty   Int            @default(10)
-  stock             Int            @default(0)
-  lowStockThreshold Int            @default(10)
-  allowBackorder    Boolean        @default(false)
-  soldIndividually  Boolean        @default(false)
-  rating            Decimal        @default(0) @db.Decimal(2, 1)
-  reviewCount       Int            @default(0)
+  slug              String           @unique
+  sku               String           @unique
+  price             Decimal          @db.Decimal(10, 2)
+  compareAtPrice    Decimal?         @db.Decimal(10, 2)
+  wholesalePrice    Decimal?         @db.Decimal(10, 2)
+  wholesaleMinQty   Int              @default(10)
+  stock             Int              @default(0)
+  lowStockThreshold Int              @default(10)
+  allowBackorder    Boolean          @default(false)
+  soldIndividually  Boolean          @default(false)
+  rating            Decimal          @default(0) @db.Decimal(2, 1)
+  reviewCount       Int              @default(0)
   badge             String?
-  featured          Boolean        @default(false)
-  shortDescription  String?        @db.Text
-  description       String?        @db.Text
+  featured          Boolean          @default(false)
+  shortDescription  String?          @db.Text
+  description       String?          @db.Text
   seoTitle          String?
-  metaDescription   String?        @db.Text
-  focusKeywords     String?        @db.Text
+  metaDescription   String?          @db.Text
+  focusKeywords     String?          @db.Text
   imageAlt          String?
   images            Json
   attributes        Json?
   productType       String?
   categoryId        Int
-  category          Category       @relation(fields: [categoryId], references: [id])
+  category          Category         @relation(fields: [categoryId], references: [id])
   brandId           Int?
-  brand             Brand?         @relation(fields: [brandId], references: [id])
+  brand             Brand?           @relation(fields: [brandId], references: [id])
   cartItems         CartItem[]
   wishlistItems     WishlistItem[]
   orderItems        OrderItem[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  variants          ProductVariant[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([categoryId])
   @@index([brandId])
+}
+
+model Attribute {
+  id        Int              @id @default(autoincrement())
+  name      String
+  slug      String           @unique
+  values    AttributeValue[]
+  createdAt DateTime         @default(now())
+}
+
+model AttributeValue {
+  id            Int                   @id @default(autoincrement())
+  attributeId   Int
+  attribute     Attribute             @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  value         String
+  variantValues ProductVariantValue[]
+  createdAt     DateTime              @default(now())
+
+  @@index([attributeId])
+}
+
+model ProductVariant {
+  id                Int                   @id @default(autoincrement())
+  productId         Int
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String                @unique
+  price             Decimal               @db.Decimal(10, 2)
+  compareAtPrice    Decimal?              @db.Decimal(10, 2)
+  wholesalePrice    Decimal?              @db.Decimal(10, 2)
+  productCost       Decimal?              @db.Decimal(10, 2)
+  stockStatus       String                @default("in_stock")
+  stock             Int                   @default(0)
+  lowStockThreshold Int                   @default(10)
+  weightKg          Decimal?              @db.Decimal(10, 2)
+  lengthCm          Decimal?              @db.Decimal(10, 2)
+  widthCm           Decimal?              @db.Decimal(10, 2)
+  heightCm          Decimal?              @db.Decimal(10, 2)
+  image             String?
+  isDefault         Boolean               @default(false)
+  values            ProductVariantValue[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@index([productId])
+}
+
+model ProductVariantValue {
+  productVariantId Int
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  attributeValueId Int
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([productVariantId, attributeValueId])
+  @@index([attributeValueId])
 }
 
 enum Role {
@@ -183,18 +240,21 @@ model Address {
 }
 
 model CartItem {
-  id        Int      @id @default(autoincrement())
+  id        Int             @id @default(autoincrement())
   userId    Int?
   sessionId String?
   productId Int
-  product   Product  @relation(fields: [productId], references: [id])
-  user      User?    @relation(fields: [userId], references: [id])
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
+  product   Product         @relation(fields: [productId], references: [id])
+  variantId Int?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  user      User?           @relation(fields: [userId], references: [id])
+  quantity  Int             @default(1)
+  createdAt DateTime        @default(now())
 
   @@index([userId])
   @@index([sessionId])
   @@index([productId])
+  @@index([variantId])
 }
 
 model WishlistItem {
@@ -248,17 +308,21 @@ model MaintenanceSettings {
 }
 
 model OrderItem {
-  id        Int     @id @default(autoincrement())
+  id        Int             @id @default(autoincrement())
   orderId   Int
-  order     Order   @relation(fields: [orderId], references: [id])
+  order     Order           @relation(fields: [orderId], references: [id])
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id])
+  variantId Int?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
   name      String
-  price     Decimal @db.Decimal(10, 2)
+  sku       String?
+  price     Decimal         @db.Decimal(10, 2)
   quantity  Int
 
   @@index([orderId])
   @@index([productId])
+  @@index([variantId])
 }
 
 model Service {

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!scope) return NextResponse.json([]);
   const items = await prisma.cartItem.findMany({
     where: scope,
-    include: { product: true },
+    include: { product: true, variant: { include: { values: true } } },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json(items);
@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
 
 const addSchema = z.object({
   productId: z.number(),
+  variantId: z.number().optional(),
   quantity: z.number().min(1).default(1),
 });
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = addSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-  const { productId, quantity } = parsed.data;
+  const { productId, variantId, quantity } = parsed.data;
 
   const scope = await scopeFilter(req);
   if (!scope) return NextResponse.json({ error: "Missing session" }, { status: 400 });
@@ -43,18 +44,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This product is restricted to approved Locksmith Merchants" }, { status: 403 });
   }
 
-  const existing = await prisma.cartItem.findFirst({ where: { ...scope, productId } });
+  if (product.productType === "Variable Product") {
+    if (!variantId) return NextResponse.json({ error: "Select a variation" }, { status: 400 });
+    const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
+    if (!variant || variant.productId !== productId) {
+      return NextResponse.json({ error: "Variation not found" }, { status: 404 });
+    }
+  }
+
+  const existing = await prisma.cartItem.findFirst({ where: { ...scope, productId, variantId: variantId ?? null } });
   let item;
   if (existing) {
     item = await prisma.cartItem.update({
       where: { id: existing.id },
       data: { quantity: product.soldIndividually ? 1 : existing.quantity + quantity },
-      include: { product: true },
+      include: { product: true, variant: { include: { values: true } } },
     });
   } else {
     item = await prisma.cartItem.create({
-      data: { ...scope, productId, quantity: product.soldIndividually ? 1 : quantity },
-      include: { product: true },
+      data: { ...scope, productId, variantId: variantId ?? null, quantity: product.soldIndividually ? 1 : quantity },
+      include: { product: true, variant: { include: { values: true } } },
     });
   }
   return NextResponse.json(item, { status: 201 });

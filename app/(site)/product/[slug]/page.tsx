@@ -63,6 +63,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     );
   }
 
+  const defaultVariant = product.variants?.find((v) => v.isDefault) ?? product.variants?.[0] ?? null;
+  const seoPrice = defaultVariant ? Number(defaultVariant.price) : Number(product.price);
+  const seoStock = defaultVariant ? defaultVariant.stock : product.stock;
+  const seoSku = defaultVariant?.sku ?? product.sku;
+
   return (
     <div>
       <JsonLd
@@ -71,7 +76,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           "@type": "Product",
           name: product.name,
           description: seoDescription(product.metaDescription || product.shortDescription || product.description),
-          sku: product.sku,
+          sku: seoSku,
           image: product.images.map(absoluteUrl),
           category: product.category?.name,
           brand: product.brand ? { "@type": "Brand", name: product.brand.name } : undefined,
@@ -79,9 +84,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           offers: {
             "@type": "Offer",
             priceCurrency: "LKR",
-            price: Number(product.price).toFixed(2),
+            price: seoPrice.toFixed(2),
             availability:
-              product.stock > 0
+              seoStock > 0
                 ? "https://schema.org/InStock"
                 : product.allowBackorder
                   ? "https://schema.org/BackOrder"

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, AuthUser, CartItem, WishlistItem } from "@/lib/api";
 import { getSessionId } from "@/lib/session";
-import { getLineTotal } from "@/lib/pricing";
+import { getLineTotal, resolvePriceSource } from "@/lib/pricing";
 
 interface CartContextValue {
   items: CartItem[];
@@ -11,7 +11,7 @@ interface CartContextValue {
   count: number;
   subtotal: number;
   shippingCost: number;
-  addToCart: (productId: number, quantity?: number) => Promise<void>;
+  addToCart: (productId: number, quantity?: number, variantId?: number) => Promise<void>;
   updateQuantity: (id: number, quantity: number) => Promise<void>;
   removeItem: (id: number) => Promise<void>;
   refresh: () => Promise<void>;
@@ -110,10 +110,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
       items: cartItems,
       loading: cartLoading,
       count: cartItems.reduce((sum, i) => sum + i.quantity, 0),
-      subtotal: cartItems.reduce((sum, i) => sum + getLineTotal(i.product, i.quantity), 0),
+      subtotal: cartItems.reduce(
+        (sum, i) => sum + getLineTotal(resolvePriceSource(i.product, i.variant), i.quantity),
+        0
+      ),
       shippingCost,
-      addToCart: async (productId, quantity = 1) => {
-        await api.addToCart(sessionId, productId, quantity);
+      addToCart: async (productId, quantity = 1, variantId) => {
+        await api.addToCart(sessionId, productId, quantity, variantId);
         await refreshCart();
       },
       updateQuantity: async (id, quantity) => {
