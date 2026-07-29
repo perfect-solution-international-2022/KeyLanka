@@ -168,6 +168,15 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
+  // maintenance mode
+  getMaintenanceSettings: () =>
+    request<{ id: number; enabled: boolean; message: string | null }>("/maintenance"),
+  updateMaintenanceSettings: (data: { enabled: boolean; message?: string | null }) =>
+    request<{ id: number; enabled: boolean; message: string | null }>("/maintenance", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   // products
   getProducts: (search?: string) => request<AdminProduct[]>(`/products${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   getProduct: (id: number) => request<AdminProduct>(`/products/${id}`),

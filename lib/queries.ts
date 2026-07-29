@@ -156,6 +156,14 @@ export async function getShippingCost(): Promise<number> {
   return Number(settings.shippingCost);
 }
 
+export async function getMaintenanceSettings() {
+  return prisma.maintenanceSettings.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, enabled: false },
+  });
+}
+
 export async function mergeGuestData(sessionId: string | undefined | null, userId: number) {
   if (!sessionId) return;
 

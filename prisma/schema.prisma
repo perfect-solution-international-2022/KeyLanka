@@ -240,6 +240,13 @@ model ShippingSettings {
   updatedAt    DateTime @updatedAt
 }
 
+model MaintenanceSettings {
+  id        Int      @id @default(1)
+  enabled   Boolean  @default(false)
+  message   String?  @db.VarChar(500)
+  updatedAt DateTime @updatedAt
+}
+
 model OrderItem {
   id        Int     @id @default(autoincrement())
   orderId   Int
