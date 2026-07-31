@@ -6,6 +6,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const asset = await prisma.uploadAsset.findFirst({
     where: { id, visibility: "PUBLIC", purpose: "PRODUCT_IMAGE" },
+    select: { bytes: true, contentType: true, originalName: true },
   });
   if (!asset) return NextResponse.json({ error: "Image not found" }, { status: 404 });
 

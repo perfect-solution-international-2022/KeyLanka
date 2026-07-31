@@ -13,7 +13,7 @@ function slugify(s: string) {
 
 export async function GET(req: NextRequest) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const services = await prisma.service.findMany({ orderBy: { id: "asc" } });
+  const services = await prisma.service.findMany({ where: { deletedAt: null }, orderBy: { id: "asc" } });
   return NextResponse.json(services);
 }
 

@@ -7,9 +7,9 @@ export default function Footer() {
       <div className="container-page py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Image src="/logo-icon.png" alt="Key Lanka" width={44} height={44} className="h-11 w-11 object-contain" />
+            <Image src="/logo-icon.webp" alt="Key Lanka" width={44} height={44} className="h-11 w-11 object-contain" />
             <span className="font-extrabold text-white text-lg">
-              KEY <span className="text-brand">LANKA</span>
+              KEY <span className="text-[#ff817a]">LANKA</span>
             </span>
           </div>
           <p className="text-sm text-gray-400 leading-relaxed">
@@ -47,7 +47,7 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-500">
+      <div className="border-t border-gray-800 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-400">
         <span>© {new Date().getFullYear()} Key Lanka. All rights reserved.</span>
         <span className="hidden sm:inline">·</span>
         <div className="flex items-center gap-4">

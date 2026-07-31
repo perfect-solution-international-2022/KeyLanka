@@ -31,7 +31,7 @@ export default function AccountPage() {
         .catch(() => setOrders([]))
         .finally(() => setOrdersLoading(false));
     } else {
-      setOrdersLoading(false);
+      queueMicrotask(() => setOrdersLoading(false));
     }
   }, [auth.user]);
 

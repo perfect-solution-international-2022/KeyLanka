@@ -74,9 +74,11 @@ export interface AdminProduct {
   imageAlt: string | null;
   images: string[];
   productType: string | null;
+  deletedAt: string | null;
   categoryId: number;
   brandId: number | null;
   category?: { id: number; name: string };
+  categories?: { id: number; name: string }[];
   brand?: { id: number; name: string } | null;
   variants?: AdminProductVariant[];
 }
@@ -106,6 +108,7 @@ export interface AdminProductInput {
   images: string[];
   productType?: string | null;
   categoryId: number;
+  categoryIds: number[];
   brandId?: number | null;
   variants?: AdminProductVariantInput[];
 }
@@ -165,6 +168,8 @@ export interface AdminCustomer {
   createdAt: string;
   orderCount: number;
   totalSpent: string;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
 }
 
 export interface AdminUser {
@@ -280,9 +285,16 @@ export const adminApi = {
   updateOrderStatus: (id: number, status: string) =>
     request<AdminOrder>(`/orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
   moveOrderToTrash: (id: number) => request<AdminOrder>(`/orders/${id}`, { method: "DELETE" }),
+  restoreTrashItem: (type: "order" | "product" | "category" | "brand" | "service" | "attribute" | "attributeValue", id: number) =>
+    request<{ ok: true }>(`/trash/${type}/${id}`, { method: "PATCH" }),
 
   // customers
   getCustomers: () => request<AdminCustomer[]>("/customers"),
+  setCustomerSuspension: (id: number, suspended: boolean, reason?: string) =>
+    request<{ suspendedAt: string | null; suspensionReason: string | null }>(`/customers/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ suspended, reason }),
+    }),
 
   // accounts (all users, admin can create buyers or admins)
   getUsers: () => request<AdminUser[]>("/users"),

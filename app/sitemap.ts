@@ -7,6 +7,7 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, categories, brands, services] = await Promise.all([
     prisma.product.findMany({
+      where: { deletedAt: null },
       select: {
         slug: true,
         updatedAt: true,
@@ -15,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     }),
     prisma.category.findMany({
+      where: { deletedAt: null },
       select: {
         slug: true,
         createdAt: true,
@@ -23,8 +25,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         parent: { select: { restricted: true } },
       },
     }),
-    prisma.brand.findMany({ select: { slug: true, createdAt: true, logo: true } }),
-    prisma.service.findMany({ select: { slug: true, createdAt: true } }),
+    prisma.brand.findMany({ where: { deletedAt: null }, select: { slug: true, createdAt: true, logo: true } }),
+    prisma.service.findMany({ where: { deletedAt: null }, select: { slug: true, createdAt: true } }),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -83,4 +85,3 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticPages, ...categoryPages, ...brandPages, ...servicePages, ...productPages];
 }
-

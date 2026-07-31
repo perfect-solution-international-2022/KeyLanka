@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 import { getMaintenanceSettings } from "@/lib/queries";
 import { recordSecurityEvent } from "@/lib/security-audit";
+import { revalidateTag } from "next/cache";
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -29,6 +30,7 @@ export async function PATCH(req: NextRequest) {
     update: { enabled: parsed.data.enabled, message: parsed.data.message ?? null },
     create: { id: 1, enabled: parsed.data.enabled, message: parsed.data.message ?? null },
   });
+  revalidateTag("maintenance-settings", { expire: 0 });
   await recordSecurityEvent({
     req,
     actorUserId: auth.userId,

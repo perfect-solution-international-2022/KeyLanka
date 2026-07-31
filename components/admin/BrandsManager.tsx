@@ -43,7 +43,7 @@ export function BrandsManager() {
   }
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => void refresh());
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -70,13 +70,13 @@ export function BrandsManager() {
   async function handleDelete(id: number, name: string) {
     const confirmed = await confirmToast(`Delete "${name}"?`, {
       confirmLabel: "Delete",
-      description: "This cannot be undone.",
+      description: "The brand will move to Trash and can be restored.",
     });
     if (!confirmed) return;
     setError("");
     try {
       await adminApi.deleteBrand(id);
-      toast.success("Brand deleted");
+      toast.success("Brand moved to Trash");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");

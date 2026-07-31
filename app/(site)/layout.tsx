@@ -5,6 +5,7 @@ import { getCategories } from "@/lib/queries";
 import type { Category } from "@/lib/api";
 import { JsonLd } from "@/components/JsonLd";
 import { absoluteUrl } from "@/lib/seo";
+import { Providers } from "@/app/providers";
 
 export default async function SiteLayout({
   children,
@@ -19,6 +20,7 @@ export default async function SiteLayout({
   }
 
   return (
+    <Providers>
     <div className="light flex min-h-screen flex-col bg-background text-foreground pb-16 md:pb-0">
       <JsonLd
         data={[
@@ -56,5 +58,6 @@ export default async function SiteLayout({
       <Footer />
       <MobileBottomNav />
     </div>
+    </Providers>
   );
 }

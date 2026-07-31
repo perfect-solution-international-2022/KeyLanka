@@ -27,7 +27,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.badge && (
           <span
             className={`absolute top-2 left-2 z-10 text-[11px] font-semibold px-2 py-0.5 rounded ${
-              product.badge === "HOT" ? "bg-brand text-white" : "bg-green-600 text-white"
+              product.badge === "HOT" ? "bg-brand text-white" : "bg-green-800 text-white"
             }`}
           >
             {product.badge}
@@ -47,6 +47,7 @@ export default function ProductCard({ product }: { product: Product }) {
             src={product.images?.[0] ?? "/products/placeholder-1.svg"}
             alt={product.name}
             fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
             className="object-contain p-6 group-hover:scale-105 transition-transform"
           />
         </Link>
@@ -57,7 +58,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </Link>
         <div className="flex items-center gap-1">
           <Stars rating={product.rating} />
-          <span className="text-[11px] text-gray-400">({product.reviewCount})</span>
+          <span className="text-[11px] text-gray-600">({product.reviewCount})</span>
         </div>
         <div className="flex items-center gap-2 mt-1">
           <span className="font-semibold text-gray-900">{formatCurrency(product.price)}</span>

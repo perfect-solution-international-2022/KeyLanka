@@ -17,11 +17,11 @@ function OnePayReturnContent() {
   const orderId = searchParams.get("orderId");
   const [order, setOrder] = useState<OrderStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [attempts, setAttempts] = useState(0);
+  const [, setAttempts] = useState(0);
 
   useEffect(() => {
     if (!orderId) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
 

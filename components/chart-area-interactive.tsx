@@ -55,7 +55,7 @@ export function ChartAreaInteractive({ data }: { data: DailyPoint[] }) {
 
   React.useEffect(() => {
     if (isMobile) {
-      setTimeRange("7d")
+      queueMicrotask(() => setTimeRange("7d"))
     }
   }, [isMobile])
 

@@ -30,9 +30,9 @@ const PILLARS = [
 
 export default async function AboutPage() {
   const [productCount, brandCount, categoryCount] = await Promise.all([
-    prisma.product.count(),
-    prisma.brand.count(),
-    prisma.category.count(),
+    prisma.product.count({ where: { deletedAt: null } }),
+    prisma.brand.count({ where: { deletedAt: null } }),
+    prisma.category.count({ where: { deletedAt: null } }),
   ]);
 
   const stats = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { createElement, useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Pencil, Trash2, X, ChevronDown } from "lucide-react";
 import { adminApi, AdminService } from "@/lib/admin-api";
@@ -38,7 +38,7 @@ function IconPicker({ value, onChange }: { value: string | null; onChange: (name
         className="w-full flex items-center justify-between gap-2 border border-input rounded-lg px-3 py-2 text-sm bg-transparent h-9"
       >
         <span className="flex items-center gap-2 text-muted-foreground">
-          {SelectedIcon ? <SelectedIcon size={16} className="text-foreground" /> : null}
+          {SelectedIcon ? createElement(SelectedIcon, { size: 16, className: "text-foreground" }) : null}
           {value ?? "Choose an icon (optional)"}
         </span>
         <ChevronDown size={14} className={open ? "rotate-180 transition-transform" : "transition-transform"} />
@@ -98,7 +98,7 @@ export function ServicesManager() {
   }
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => void refresh());
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -125,13 +125,13 @@ export function ServicesManager() {
   async function handleDelete(id: number, title: string) {
     const confirmed = await confirmToast(`Delete "${title}"?`, {
       confirmLabel: "Delete",
-      description: "This cannot be undone.",
+      description: "The service will move to Trash and can be restored.",
     });
     if (!confirmed) return;
     setError("");
     try {
       await adminApi.deleteService(id);
-      toast.success("Service deleted");
+      toast.success("Service moved to Trash");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");

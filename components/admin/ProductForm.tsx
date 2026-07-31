@@ -109,7 +109,15 @@ export function ProductForm({
   const [productType, setProductType] = useState(
     product?.productType === "Variable Product" ? "Variable Product" : "Single Product"
   );
-  const [categoryId, setCategoryId] = useState(String(product?.categoryId ?? categories[0]?.id ?? ""));
+  const [categoryIds, setCategoryIds] = useState<number[]>(
+    product?.categories?.length
+      ? product.categories.map((category) => category.id)
+      : product?.categoryId
+        ? [product.categoryId]
+        : categories[0]?.id
+          ? [categories[0].id]
+          : []
+  );
   const [brandId, setBrandId] = useState(product?.brandId ? String(product.brandId) : "");
   const [images, setImages] = useState<string[]>(product?.images ?? []);
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle ?? "");
@@ -175,6 +183,12 @@ export function ProductForm({
     });
   }
 
+  function toggleCategory(categoryId: number) {
+    setCategoryIds((current) =>
+      current.includes(categoryId) ? current.filter((id) => id !== categoryId) : [...current, categoryId]
+    );
+  }
+
   function generateVariations() {
     const chosenGroups = Object.values(selectedAttrValues).filter((ids) => ids.length > 0);
     if (chosenGroups.length === 0) {
@@ -224,7 +238,7 @@ export function ProductForm({
 
   useEffect(() => {
     if (!isVariable && (activeTab === "attributes" || activeTab === "variations")) {
-      setActiveTab("general");
+      queueMicrotask(() => setActiveTab("general"));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVariable]);
@@ -246,7 +260,7 @@ export function ProductForm({
     event.preventDefault();
     setError("");
 
-    if (!name.trim() || !categoryId || !price) {
+    if (!name.trim() || categoryIds.length === 0 || !price) {
       setActiveTab("general");
       setError("Complete the required fields in General.");
       return;
@@ -313,7 +327,8 @@ export function ProductForm({
       imageAlt,
       images,
       productType: productType || null,
-      categoryId: Number(categoryId),
+      categoryId: categoryIds.includes(product?.categoryId ?? -1) ? product!.categoryId : categoryIds[0],
+      categoryIds,
       brandId: brandId ? Number(brandId) : null,
       variants: isVariable
         ? variants.map((v) => ({
@@ -390,15 +405,21 @@ export function ProductForm({
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="category">Category</Label>
-            <select id="category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className={selectClass}>
-              <option value="" disabled>Select category</option>
+            <Label>Categories</Label>
+            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-input bg-background p-2">
               {flatCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.parentId ? `— ${category.name}` : category.name}
-                </option>
+                <label key={category.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                  <input
+                    type="checkbox"
+                    checked={categoryIds.includes(category.id)}
+                    onChange={() => toggleCategory(category.id)}
+                    className="h-4 w-4 accent-brand"
+                  />
+                  <span>{category.parentId ? `— ${category.name}` : category.name}</span>
+                </label>
               ))}
-            </select>
+            </div>
+            <p className="text-xs text-muted-foreground">Select one or more categories.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="productType">Product Type</Label>

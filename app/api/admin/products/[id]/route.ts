@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
 import { variantSchema, saveVariants } from "@/lib/product-variants";
@@ -8,9 +7,9 @@ import { variantSchema, saveVariants } from "@/lib/product-variants";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
-  const product = await prisma.product.findUnique({
-    where: { id: Number(id) },
-    include: { variants: { include: { values: true } } },
+  const product = await prisma.product.findFirst({
+    where: { id: Number(id), deletedAt: null },
+    include: { categories: true, variants: { include: { values: true } } },
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(product);
@@ -41,6 +40,7 @@ const updateSchema = z.object({
   images: z.array(z.string()).min(1),
   productType: z.string().nullable().optional(),
   categoryId: z.number(),
+  categoryIds: z.array(z.number().int().positive()).min(1),
   brandId: z.number().nullable().optional(),
   variants: z.array(variantSchema).optional(),
 });
@@ -53,6 +53,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   const data = parsed.data;
+
+  const existingProduct = await prisma.product.findFirst({ where: { id: Number(id), deletedAt: null }, select: { id: true } });
+  if (!existingProduct) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const skuOwner = await prisma.product.findUnique({ where: { sku: data.sku } });
   if (skuOwner && skuOwner.id !== Number(id)) {
@@ -104,6 +107,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         images: data.images,
         productType: data.productType || null,
         categoryId: data.categoryId,
+        categories: { set: [...new Set([data.categoryId, ...data.categoryIds])].map((categoryId) => ({ id: categoryId })) },
         brandId: data.brandId ?? null,
       },
     });
@@ -127,20 +131,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
   const productId = Number(id);
 
-  try {
-    await prisma.$transaction([
-      prisma.cartItem.deleteMany({ where: { productId } }),
-      prisma.wishlistItem.deleteMany({ where: { productId } }),
-      prisma.product.delete({ where: { id: productId } }),
-    ]);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
-      return NextResponse.json(
-        { error: "Cannot delete: this product has order history." },
-        { status: 409 }
-      );
-    }
-    throw err;
-  }
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, deletedAt: true } });
+  if (!product || product.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.$transaction([
+    prisma.cartItem.deleteMany({ where: { productId } }),
+    prisma.wishlistItem.deleteMany({ where: { productId } }),
+    prisma.product.update({ where: { id: productId }, data: { deletedAt: new Date() } }),
+  ]);
+  return NextResponse.json({ ok: true });
 }

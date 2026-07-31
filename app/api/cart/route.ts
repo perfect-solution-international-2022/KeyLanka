@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getUserId, verifyAuth } from "@/lib/auth-server";
+import { verifyAuth } from "@/lib/auth-server";
 import { isAuthLocksmithAuthorized } from "@/lib/queries";
-
-async function scopeFilter(req: NextRequest) {
-  const userId = await getUserId(req);
-  if (userId) return { userId };
-  const sessionId = req.headers.get("x-session-id");
-  if (sessionId && z.string().uuid().safeParse(sessionId).success) return { sessionId };
-  return null;
-}
+import { getRequestScope } from "@/lib/request-scope";
 
 export async function GET(req: NextRequest) {
-  const scope = await scopeFilter(req);
+  const scope = await getRequestScope(req);
+  if (scope === "blocked") return NextResponse.json({ error: "Account access is blocked" }, { status: 403 });
   if (!scope) return NextResponse.json([]);
   const items = await prisma.cartItem.findMany({
     where: scope,
@@ -35,10 +29,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   const { productId, variantId, quantity } = parsed.data;
 
-  const scope = await scopeFilter(req);
+  const scope = await getRequestScope(req);
+  if (scope === "blocked") return NextResponse.json({ error: "Account access is blocked" }, { status: 403 });
   if (!scope) return NextResponse.json({ error: "Missing session" }, { status: 400 });
 
-  const product = await prisma.product.findUnique({ where: { id: productId }, include: { category: true } });
+  const product = await prisma.product.findFirst({ where: { id: productId, deletedAt: null }, include: { category: true } });
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
   if (product.category.restricted && !(await isAuthLocksmithAuthorized(await verifyAuth(req)))) {
     return NextResponse.json({ error: "This product is restricted to approved Locksmith Merchants" }, { status: 403 });

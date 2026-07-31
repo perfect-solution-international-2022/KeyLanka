@@ -39,7 +39,7 @@ export default function CheckoutPage() {
   const [shippingName, setShippingName] = useState("");
 
   useEffect(() => {
-    if (auth.user?.name) setShippingName((prev) => prev || auth.user!.name);
+    if (auth.user?.name) queueMicrotask(() => setShippingName((prev) => prev || auth.user!.name));
   }, [auth.user]);
   const [shippingLine1, setShippingLine1] = useState("");
   const [shippingCity, setShippingCity] = useState("");

@@ -40,7 +40,7 @@ const WishlistContext = createContext<WishlistContextValue | null>(null);
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [sessionId, setSessionId] = useState("");
+  const [sessionId] = useState(getSessionId);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartLoading, setCartLoading] = useState(true);
   const [shippingCost, setShippingCost] = useState(0);
@@ -48,13 +48,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [wishlistLoading, setWishlistLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-
-  useEffect(() => {
-    setSessionId(getSessionId());
-    api.getShipping()
-      .then((settings) => setShippingCost(settings.shippingCost))
-      .catch(() => setShippingCost(0));
-  }, []);
 
   const refreshCart = useCallback(async () => {
     if (!sessionId) return;
@@ -95,15 +88,28 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (sessionId) {
-      refreshCart();
-      refreshWishlist();
-    }
-  }, [sessionId, refreshCart, refreshWishlist]);
+    const hydrateSession = () => {
+      void refreshAuth();
+      if (sessionId) {
+        void refreshCart();
+        void refreshWishlist();
+      }
+      void api.getShipping()
+        .then((settings) => setShippingCost(settings.shippingCost))
+        .catch(() => setShippingCost(0));
+    };
 
-  useEffect(() => {
-    refreshAuth();
-  }, [refreshAuth]);
+    const win = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (win.requestIdleCallback) {
+      const handle = win.requestIdleCallback(hydrateSession, { timeout: 4000 });
+      return () => win.cancelIdleCallback?.(handle);
+    }
+    const handle = window.setTimeout(hydrateSession, 1500);
+    return () => window.clearTimeout(handle);
+  }, [sessionId, refreshAuth, refreshCart, refreshWishlist]);
 
   const cartValue = useMemo<CartContextValue>(
     () => ({

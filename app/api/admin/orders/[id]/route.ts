@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const order = await prisma.$transaction(async (tx) => {
     // Cancelling releases the stock that was reserved when the order was placed.
     if (parsed.data.status === "cancelled" && existing.status !== "cancelled") {
-      await releaseStock(tx, existing.items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
+      await releaseStock(tx, existing.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })));
     }
 
     return tx.order.update({
@@ -62,16 +62,22 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
 
-  const existing = await prisma.order.findUnique({ where: { id: Number(id) } });
+  const existing = await prisma.order.findUnique({ where: { id: Number(id) }, include: { items: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.deletedAt) {
     return NextResponse.json({ error: "Orders in Trash cannot be deleted" }, { status: 409 });
   }
 
-  const order = await prisma.order.update({
-    where: { id: existing.id },
-    data: { deletedAt: new Date() },
-    include: { user: { select: { id: true, name: true, email: true } }, items: true },
+  const shouldCancel = existing.status !== "cancelled" && existing.status !== "delivered";
+  const order = await prisma.$transaction(async (tx) => {
+    if (shouldCancel) {
+      await releaseStock(tx, existing.items.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })));
+    }
+    return tx.order.update({
+      where: { id: existing.id },
+      data: { deletedAt: new Date(), ...(shouldCancel ? { status: "cancelled" } : {}) },
+      include: { user: { select: { id: true, name: true, email: true } }, items: true },
+    });
   });
 
   await recordSecurityEvent({
@@ -80,7 +86,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     action: "ADMIN_ORDER_MOVED_TO_TRASH",
     targetType: "ORDER",
     targetId: order.id,
-    metadata: { status: order.status },
+    metadata: { previousStatus: existing.status, status: order.status, stockReleased: shouldCancel },
   });
 
   return NextResponse.json(order);

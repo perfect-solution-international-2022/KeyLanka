@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getUserId } from "@/lib/auth-server";
+import { getRequestScope } from "@/lib/request-scope";
 
 async function ownsItem(req: NextRequest, id: number) {
-  const userId = await getUserId(req);
-  const sessionId = req.headers.get("x-session-id");
-  const guestSession =
-    sessionId && z.string().uuid().safeParse(sessionId).success ? sessionId : null;
-  if (!userId && !guestSession) return null;
+  const scope = await getRequestScope(req);
+  if (!scope || scope === "blocked") return scope;
   return prisma.cartItem.findFirst({
-    where: { id, ...(userId ? { userId } : { sessionId: guestSession! }) },
+    where: { id, ...scope },
     include: { product: true, variant: true },
   });
 }
@@ -22,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
   const currentItem = await ownsItem(req, id);
+  if (currentItem === "blocked") return NextResponse.json({ error: "Account access is blocked" }, { status: 403 });
   if (!currentItem) return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
   const item = await prisma.cartItem.update({
     where: { id },
@@ -33,7 +31,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const id = Number((await params).id);
-  if (!Number.isInteger(id) || !(await ownsItem(req, id))) {
+  const currentItem = Number.isInteger(id) ? await ownsItem(req, id) : null;
+  if (currentItem === "blocked") return NextResponse.json({ error: "Account access is blocked" }, { status: 403 });
+  if (!Number.isInteger(id) || !currentItem) {
     return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
   }
   await prisma.cartItem.delete({ where: { id } });

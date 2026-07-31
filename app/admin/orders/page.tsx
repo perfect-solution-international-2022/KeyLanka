@@ -7,7 +7,8 @@ function serialize<T>(data: unknown): T {
   return JSON.parse(JSON.stringify(data));
 }
 
-export default async function AdminOrdersPage() {
+export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
   const orders = await prisma.order.findMany({
     include: { user: { select: { id: true, name: true, email: true } }, items: true },
     orderBy: { createdAt: "desc" },
@@ -20,7 +21,7 @@ export default async function AdminOrdersPage() {
         <h2 className="text-lg font-semibold">Orders</h2>
         <p className="text-sm text-muted-foreground">{activeOrderCount} active orders</p>
       </div>
-      <OrdersTable orders={serialize<AdminOrder[]>(orders)} />
+      <OrdersTable orders={serialize<AdminOrder[]>(orders)} initialTab={tab === "trash" ? "trash" : "pending"} />
     </AdminShell>
   );
 }

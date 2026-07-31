@@ -122,6 +122,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             src={activeImage}
             alt={product.imageAlt || product.name}
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-contain p-12"
           />
         </div>
@@ -137,7 +138,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   selectedImage === image ? "border-brand ring-2 ring-brand/15" : "border-gray-200"
                 }`}
               >
-                <Image src={image} alt="" fill className="object-contain p-1.5" />
+                <Image src={image} alt="" fill sizes="80px" className="object-contain p-1.5" />
               </button>
             ))}
           </div>

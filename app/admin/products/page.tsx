@@ -10,6 +10,7 @@ function serialize<T>(data: unknown): T {
 
 export default async function AdminProductsPage() {
   const products = await prisma.product.findMany({
+    where: { deletedAt: null },
     include: { category: true, brand: true },
     orderBy: { id: "desc" },
   });

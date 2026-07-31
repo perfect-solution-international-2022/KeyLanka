@@ -34,6 +34,7 @@ export default function CategoryTile({
             src={image}
             alt={name}
             fill
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
             className={`object-cover transition-transform ${locked ? "grayscale opacity-60" : "group-hover:scale-105"}`}
           />
         ) : (
@@ -47,7 +48,7 @@ export default function CategoryTile({
           </div>
         )}
       </div>
-      <span className={`text-sm font-semibold py-3 px-2 ${locked ? "text-gray-400" : "text-gray-800"}`}>{name}</span>
+      <span className={`text-sm font-semibold py-3 px-2 ${locked ? "text-gray-600" : "text-gray-800"}`}>{name}</span>
     </>
   );
 

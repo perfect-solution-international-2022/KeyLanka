@@ -8,18 +8,21 @@ datasource db {
 }
 
 model Category {
-  id         Int        @id @default(autoincrement())
-  name       String
-  slug       String     @unique
-  image      String?
-  restricted Boolean    @default(false)
-  parentId   Int?
-  parent     Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children   Category[] @relation("CategoryToCategory")
-  products   Product[]
-  createdAt  DateTime   @default(now())
+  id              Int        @id @default(autoincrement())
+  name            String
+  slug            String     @unique
+  image           String?
+  restricted      Boolean    @default(false)
+  parentId        Int?
+  parent          Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryToCategory")
+  primaryProducts Product[]  @relation("PrimaryCategory")
+  products        Product[]  @relation("ProductCategories")
+  createdAt       DateTime   @default(now())
+  deletedAt       DateTime?
 
   @@index([parentId])
+  @@index([deletedAt])
 }
 
 model Brand {
@@ -29,6 +32,9 @@ model Brand {
   logo      String?
   products  Product[]
   createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([deletedAt])
 }
 
 model Product {
@@ -58,7 +64,8 @@ model Product {
   attributes        Json?
   productType       String?
   categoryId        Int
-  category          Category         @relation(fields: [categoryId], references: [id])
+  category          Category         @relation("PrimaryCategory", fields: [categoryId], references: [id])
+  categories        Category[]       @relation("ProductCategories")
   brandId           Int?
   brand             Brand?           @relation(fields: [brandId], references: [id])
   cartItems         CartItem[]
@@ -67,9 +74,13 @@ model Product {
   variants          ProductVariant[]
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
 
   @@index([categoryId])
   @@index([brandId])
+  @@index([deletedAt])
+  @@index([deletedAt, featured, createdAt])
+  @@index([deletedAt, categoryId])
 }
 
 model Attribute {
@@ -78,6 +89,9 @@ model Attribute {
   slug      String           @unique
   values    AttributeValue[]
   createdAt DateTime         @default(now())
+  deletedAt DateTime?
+
+  @@index([deletedAt])
 }
 
 model AttributeValue {
@@ -87,8 +101,10 @@ model AttributeValue {
   value         String
   variantValues ProductVariantValue[]
   createdAt     DateTime              @default(now())
+  deletedAt     DateTime?
 
   @@index([attributeId])
+  @@index([deletedAt])
 }
 
 model ProductVariant {
@@ -142,6 +158,8 @@ model User {
   role                 Role                  @default(BUYER)
   sessionVersion       Int                   @default(0)
   mustResetPassword    Boolean               @default(false)
+  suspendedAt          DateTime?
+  suspensionReason     String?               @db.Text
   locksmithStatus      String? // null | "pending" | "approved" | "rejected"
   locksmithApplication LocksmithApplication?
   addresses            Address[]
@@ -152,6 +170,8 @@ model User {
   adminLoginChallenges AdminLoginChallenge[]
   securityAuditLogs    SecurityAuditLog[]
   createdAt            DateTime              @default(now())
+
+  @@index([role, suspendedAt])
 }
 
 model AdminLoginChallenge {
@@ -294,6 +314,8 @@ model Order {
 
   @@index([userId])
   @@index([deletedAt])
+  @@index([deletedAt, status, createdAt])
+  @@index([userId, deletedAt, createdAt])
 }
 
 model ShippingSettings {
@@ -328,12 +350,15 @@ model OrderItem {
 }
 
 model Service {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
-  slug        String   @unique
-  description String   @db.Text
+  slug        String    @unique
+  description String    @db.Text
   icon        String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  @@index([deletedAt])
 }
 
 model ContactMessage {

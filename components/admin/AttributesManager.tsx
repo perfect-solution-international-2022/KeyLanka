@@ -35,7 +35,7 @@ export function AttributesManager() {
   }
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => void refresh());
   }, []);
 
   function addValueDraft() {
@@ -72,13 +72,13 @@ export function AttributesManager() {
   async function handleDelete(id: number, name: string) {
     const confirmed = await confirmToast(`Delete "${name}"?`, {
       confirmLabel: "Delete",
-      description: "This removes the attribute and all its values.",
+      description: "The attribute will move to Trash and can be restored with its values.",
     });
     if (!confirmed) return;
     setError("");
     try {
       await adminApi.deleteAttribute(id);
-      toast.success("Attribute deleted");
+      toast.success("Attribute moved to Trash");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");

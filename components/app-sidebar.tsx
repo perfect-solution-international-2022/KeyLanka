@@ -32,6 +32,7 @@ import {
   ShieldCheckIcon,
   ConeIcon,
   ListTreeIcon,
+  Trash2Icon,
 } from "lucide-react"
 
 const data = {
@@ -76,6 +77,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Attributes", url: "/admin/attributes", icon: <ListTreeIcon /> },
     { title: "Services", url: "/admin/services", icon: <WrenchIcon /> },
     { title: "Orders", url: "/admin/orders", icon: <ShoppingCartIcon />, badge: badgeCounts.pendingOrders },
+    { title: "Trash", url: "/admin/trash", icon: <Trash2Icon /> },
     { title: "Customers", url: "/admin/customers", icon: <UsersIcon /> },
     { title: "Accounts", url: "/admin/accounts", icon: <UserCogIcon /> },
     { title: "Locksmith KYC", url: "/admin/locksmith", icon: <KeyRoundIcon />, badge: badgeCounts.pendingLocksmith },

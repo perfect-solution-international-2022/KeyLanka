@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { getVerifiedServerAuth } from "./auth-server";
 import type { Category, Brand, Product, Service, ProductListResponse } from "./api";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 // Server Component equivalent of isLocksmithAuthorized() in lib/locksmith.ts —
 // reads the auth cookie via next/headers instead of an AuthUser object.
@@ -28,33 +30,34 @@ function serialize<Out>(data: unknown): Out {
   return JSON.parse(JSON.stringify(data));
 }
 
-export async function getCategories() {
+export const getCategories = cache(async () => {
   const categories = await prisma.category.findMany({
-    where: { parentId: null },
-    include: { children: true },
+    where: { parentId: null, deletedAt: null },
+    include: { children: { where: { deletedAt: null } } },
     orderBy: { id: "asc" },
   });
   return serialize<Category[]>(categories);
-}
+});
 
 export async function getCategoryBySlug(slug: string) {
-  const category = await prisma.category.findUnique({
-    where: { slug },
-    include: { children: true, parent: true },
+  const category = await prisma.category.findFirst({
+    where: { slug, deletedAt: null },
+    include: { children: { where: { deletedAt: null } }, parent: true },
   });
   return category ? serialize<Category>(category) : null;
 }
 
-export async function getBrands() {
+export const getBrands = cache(async () => {
   const brands = await prisma.brand.findMany({
+    where: { deletedAt: null },
     orderBy: { name: "asc" },
-    include: { _count: { select: { products: true } } },
+    include: { _count: { select: { products: { where: { deletedAt: null } } } } },
   });
   return serialize<Brand[]>(brands);
-}
+});
 
 export async function getBrandBySlug(slug: string) {
-  const brand = await prisma.brand.findUnique({ where: { slug } });
+  const brand = await prisma.brand.findFirst({ where: { slug, deletedAt: null } });
   return brand ? serialize<Brand>(brand) : null;
 }
 
@@ -73,12 +76,17 @@ export interface ProductQueryParams {
 export async function getProducts(params: ProductQueryParams, options?: { locksmithAuthorized?: boolean }) {
   const { category, brand, minPrice, maxPrice, productType, search, sort = "popularity", page = "1", limit = "12" } = params;
 
-  const where: Prisma.ProductWhereInput = {};
+  const where: Prisma.ProductWhereInput = { deletedAt: null };
 
   const categoryFilter: Prisma.CategoryWhereInput = {};
   if (category) categoryFilter.slug = { in: category.split(",") };
   if (!options?.locksmithAuthorized) categoryFilter.restricted = false;
-  if (Object.keys(categoryFilter).length) where.category = categoryFilter;
+  if (Object.keys(categoryFilter).length) {
+    where.OR = [
+      { category: categoryFilter },
+      { categories: { some: categoryFilter } },
+    ];
+  }
 
   if (brand) where.brand = { slug: { in: brand.split(",") } };
   if (productType) where.productType = { in: productType.split(",") };
@@ -113,7 +121,7 @@ export async function getProducts(params: ProductQueryParams, options?: { locksm
 }
 
 export async function getFeaturedProducts(limit = 8, options?: { locksmithAuthorized?: boolean }) {
-  const where: Prisma.ProductWhereInput = { featured: true };
+  const where: Prisma.ProductWhereInput = { featured: true, deletedAt: null };
   if (!options?.locksmithAuthorized) where.category = { restricted: false };
 
   const products = await prisma.product.findMany({
@@ -125,9 +133,9 @@ export async function getFeaturedProducts(limit = 8, options?: { locksmithAuthor
   return serialize<Product[]>(products);
 }
 
-export async function getProductBySlug(slug: string) {
-  const product = await prisma.product.findUnique({
-    where: { slug },
+export const getProductBySlug = cache(async (slug: string) => {
+  const product = await prisma.product.findFirst({
+    where: { slug, deletedAt: null },
     include: {
       category: { include: { parent: true } },
       brand: true,
@@ -135,15 +143,15 @@ export async function getProductBySlug(slug: string) {
     },
   });
   return product ? serialize<Product>(product) : null;
-}
+});
 
 export async function getServices() {
-  const services = await prisma.service.findMany({ orderBy: { id: "asc" } });
+  const services = await prisma.service.findMany({ where: { deletedAt: null }, orderBy: { id: "asc" } });
   return serialize<Service[]>(services);
 }
 
 export async function getServiceBySlug(slug: string) {
-  const service = await prisma.service.findUnique({ where: { slug } });
+  const service = await prisma.service.findFirst({ where: { slug, deletedAt: null } });
   return service ? serialize<Service>(service) : null;
 }
 
@@ -161,12 +169,17 @@ export async function getShippingCost(): Promise<number> {
 }
 
 export async function getMaintenanceSettings() {
-  return prisma.maintenanceSettings.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { id: 1, enabled: false },
-  });
+  return getCachedMaintenanceSettings();
 }
+
+const getCachedMaintenanceSettings = unstable_cache(
+  async () => {
+    const settings = await prisma.maintenanceSettings.findUnique({ where: { id: 1 } });
+    return settings ?? { id: 1, enabled: false, message: null, updatedAt: new Date(0) };
+  },
+  ["maintenance-settings"],
+  { tags: ["maintenance-settings"], revalidate: 30 }
+);
 
 export async function mergeGuestData(sessionId: string | undefined | null, userId: number) {
   if (!sessionId) return;
@@ -200,7 +213,7 @@ export async function getDashboardStats() {
   const [revenueAgg, totalOrders, totalProducts, totalCustomers] = await Promise.all([
     prisma.order.aggregate({ where: completedOrderWhere, _sum: { total: true } }),
     prisma.order.count({ where: completedOrderWhere }),
-    prisma.product.count(),
+    prisma.product.count({ where: { deletedAt: null } }),
     prisma.user.count(),
   ]);
 
@@ -365,6 +378,7 @@ export async function getItemReport(days = 90) {
 
   const [products, orderItems] = await Promise.all([
     prisma.product.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         name: true,

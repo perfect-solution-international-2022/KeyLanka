@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
 
@@ -28,13 +27,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
 
-  try {
-    await prisma.brand.delete({ where: { id: Number(id) } });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
-      return NextResponse.json({ error: "Cannot delete: brand still has products." }, { status: 409 });
-    }
-    throw err;
-  }
+  await prisma.brand.update({ where: { id: Number(id) }, data: { deletedAt: new Date() } });
+  return NextResponse.json({ ok: true });
 }

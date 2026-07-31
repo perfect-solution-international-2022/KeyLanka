@@ -81,6 +81,21 @@ export interface ProductListResponse {
   totalPages: number;
 }
 
+export interface Order {
+  id: number;
+  status: string;
+  total: string;
+  createdAt: string;
+  shippingName: string;
+  shippingLine1: string;
+  shippingCity: string;
+  shippingDistrict: string;
+  shippingPostalCode: string;
+  shippingPhone: string;
+  paymentMethod: string;
+  items: { id: number; name: string; quantity: number; price: string }[];
+}
+
 export interface Service {
   id: number;
   title: string;
@@ -225,7 +240,7 @@ export const api = {
       headers: sessionId ? { "x-session-id": sessionId } : undefined,
     }),
   logout: () => request("/auth/logout", { method: "POST" }),
-  me: () => request<AuthUser>("/auth/me"),
+  me: () => request<AuthUser | null>("/auth/me"),
   forgotPassword: (email: string) => request("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
   resetPassword: (token: string, password: string) =>
     request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) }),
@@ -236,8 +251,8 @@ export const api = {
     request<LocksmithApplication>("/locksmith/apply", { method: "POST", body: JSON.stringify(data) }),
 
   // orders
-  getOrders: () => request<any[]>("/orders"),
-  getOrder: (id: number | string) => request<any>(`/orders/${id}`),
+  getOrders: () => request<Order[]>("/orders"),
+  getOrder: (id: number | string) => request<Order>(`/orders/${id}`),
   createOrder: (data: {
     shippingName: string;
     shippingLine1: string;
@@ -246,7 +261,7 @@ export const api = {
     shippingPostalCode: string;
     shippingPhone: string;
     paymentMethod: "cod" | "bank_transfer";
-  }) => request<any>("/orders", { method: "POST", body: JSON.stringify(data) }),
+  }) => request<Order>("/orders", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export function formatCurrency(value: string | number) {

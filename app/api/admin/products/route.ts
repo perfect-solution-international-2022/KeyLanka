@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
   const search = sp.get("search") ?? undefined;
 
   const products = await prisma.product.findMany({
-    where: search ? { name: { contains: search } } : undefined,
-    include: { category: true, brand: true, variants: { include: { values: true } } },
+    where: { deletedAt: null, ...(search ? { name: { contains: search } } : {}) },
+    include: { category: true, categories: true, brand: true, variants: { include: { values: true } } },
     orderBy: { id: "desc" },
   });
   return NextResponse.json(products);
@@ -43,6 +43,7 @@ const productSchema = z.object({
   images: z.array(z.string()).min(1),
   productType: z.string().nullable().optional(),
   categoryId: z.number(),
+  categoryIds: z.array(z.number().int().positive()).min(1),
   brandId: z.number().nullable().optional(),
   variants: z.array(variantSchema).optional(),
 });
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
         images: data.images,
         productType: data.productType || null,
         categoryId: data.categoryId,
+        categories: { connect: [...new Set([data.categoryId, ...data.categoryIds])].map((id) => ({ id })) },
         brandId: data.brandId ?? null,
       },
     });

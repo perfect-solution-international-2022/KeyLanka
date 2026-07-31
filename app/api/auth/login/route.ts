@@ -39,6 +39,16 @@ export async function POST(req: NextRequest) {
     await recordSecurityEvent({ req, actorUserId: user.id, action: "AUTH_LOGIN_FAILED" });
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
+  if (user.suspendedAt) {
+    await recordSecurityEvent({
+      req,
+      actorUserId: user.id,
+      action: "AUTH_LOGIN_BLOCKED_SUSPENDED",
+      targetType: "USER",
+      targetId: user.id,
+    });
+    return NextResponse.json({ error: "This account has been suspended. Contact support for assistance." }, { status: 403 });
+  }
   if (user.mustResetPassword) {
     await recordSecurityEvent({
       req,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -105,21 +105,17 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
-
   async function handleDelete(id: number, name: string) {
     const confirmed = await confirmToast(`Delete "${name}"?`, {
       confirmLabel: "Delete",
-      description: "This cannot be undone.",
+      description: "The product will move to Trash while order history is preserved. It can be restored.",
     });
     if (!confirmed) return;
     setDeletingId(id);
     setError("");
     try {
       await adminApi.deleteProduct(id);
-      toast.success("Product deleted");
+      toast.success("Product moved to Trash");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -134,7 +130,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
         <Input
           placeholder="Search by name or SKU..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="max-w-xs h-9"
         />
         <p className="text-sm text-muted-foreground">
@@ -161,7 +157,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="relative h-10 w-10 rounded bg-muted shrink-0 overflow-hidden">
-                      <Image src={p.images[0] ?? "/products/placeholder-1.svg"} alt="" fill className="object-cover" />
+                      <Image src={p.images[0] ?? "/products/placeholder-1.svg"} alt="" fill sizes="40px" className="object-cover" />
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium truncate max-w-[220px]">{p.name}</div>

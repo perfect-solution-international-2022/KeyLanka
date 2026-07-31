@@ -5,6 +5,7 @@ import {
   fileMatchesContentType,
   PRODUCT_IMAGE_MAX_SIZE,
   PRODUCT_IMAGE_TYPES,
+  sanitizeRasterImage,
 } from "@/lib/upload-assets";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { recordSecurityEvent } from "@/lib/security-audit";
@@ -34,15 +35,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "The file contents do not match its image type" }, { status: 400 });
   }
   const malwareScan = await scanUploadForMalware(bytes);
-  if (!malwareScan.safe) {
+  if (!malwareScan.safe && !malwareScan.unavailable) {
     return NextResponse.json(
-      {
-        error: malwareScan.unavailable
-          ? "Image scanning is temporarily unavailable"
-          : "The uploaded image did not pass the security scan",
-      },
-      { status: malwareScan.unavailable ? 503 : 400 }
+      { error: "The uploaded image did not pass the security scan" },
+      { status: 400 }
     );
+  }
+  let storedBytes = bytes;
+  if (malwareScan.unavailable) {
+    try {
+      storedBytes = await sanitizeRasterImage(bytes, file.type);
+    } catch {
+      return NextResponse.json({ error: "The image could not be safely processed" }, { status: 400 });
+    }
   }
   const asset = await createUploadAsset({
     ownerId: auth.userId,
@@ -50,7 +55,7 @@ export async function POST(req: NextRequest) {
     purpose: "PRODUCT_IMAGE",
     originalName: file.name,
     contentType: file.type,
-    bytes,
+    bytes: storedBytes,
   });
   await recordSecurityEvent({
     req,
@@ -58,6 +63,7 @@ export async function POST(req: NextRequest) {
     action: "ADMIN_PRODUCT_IMAGE_UPLOADED",
     targetType: "UPLOAD_ASSET",
     targetId: asset.id,
+    metadata: malwareScan.unavailable ? { malwareScannerUnavailable: true, sanitizedFallback: true } : undefined,
   });
 
   return NextResponse.json({ url: `/api/assets/${asset.id}` }, { status: 201 });

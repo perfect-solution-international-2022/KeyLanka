@@ -1,6 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
-import { getCategories, getBrands, getFeaturedProducts, isServerLocksmithAuthorized } from "@/lib/queries";
+import { getCategories, getBrands, getFeaturedProducts } from "@/lib/queries";
 import CategoryTile from "@/components/CategoryTile";
 import BrandStrip from "@/components/BrandStrip";
 import ProductCard from "@/components/ProductCard";
@@ -12,6 +11,8 @@ export const metadata = pageMetadata({
     "Shop automotive keys, remotes, shells, transponders and locksmith tools from Key Lanka, with islandwide delivery and expert product support.",
   path: "/",
 });
+
+export const revalidate = 300;
 
 function ShippingIcon() {
   return (
@@ -115,11 +116,10 @@ const SERVICE_ICONS = [
 ];
 
 export default async function HomePage() {
-  const locksmithAuthorized = await isServerLocksmithAuthorized().catch(() => false);
   const [categories, brands, featuredProducts] = await Promise.all([
     getCategories().catch(() => []),
     getBrands().catch(() => []),
-    getFeaturedProducts(8, { locksmithAuthorized }).catch(() => []),
+    getFeaturedProducts(8, { locksmithAuthorized: false }).catch(() => []),
   ]);
 
   return (
@@ -145,7 +145,18 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="relative aspect-[1416/767] w-full md:w-[115%] xl:w-[128%] md:justify-self-end md:-mr-6 xl:-mr-12">
-            <Image src="/hero.png" alt="BMW car with smart key" fill priority className="object-cover" />
+            <picture>
+              <source media="(max-width: 767px)" srcSet="/hero-mobile.webp" />
+              <img
+                src="/hero-desktop.webp"
+                alt="BMW car with smart key"
+                width="1280"
+                height="693"
+                fetchPriority="high"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </picture>
           </div>
         </div>
       </section>
@@ -166,7 +177,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="container-page py-12">
+      <section className="defer-render container-page py-12">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
           <Link href="/shop" className="text-brand text-sm font-medium hover:underline">
@@ -181,7 +192,7 @@ export default async function HomePage() {
               name={cat.name}
               slug={cat.slug}
               image={cat.image}
-              locked={cat.restricted && !locksmithAuthorized}
+              locked={cat.restricted}
             />
           ))}
           <CategoryTile name="Vehicle Brands" slug="vehicle-brands" href="/brands" image="/vehicle-brands.jpeg" />
@@ -190,7 +201,7 @@ export default async function HomePage() {
       </section>
 
       {featuredProducts.length > 0 && (
-        <section className="container-page py-12 border-t border-gray-100">
+        <section className="defer-render container-page py-12 border-t border-gray-100">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-2xl font-bold text-gray-900">Featured Products</h2>
             <Link href="/shop" className="text-brand text-sm font-medium hover:underline">
@@ -206,7 +217,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="bg-gray-50 py-12">
+      <section className="defer-render bg-gray-50 py-12">
         <div className="container-page">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-2xl font-bold text-gray-900">Popular Brands</h2>
@@ -219,7 +230,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="container-page py-12">
+      <section className="defer-render container-page py-12">
         <div className="bg-gray-900 rounded-xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 justify-between">
           <div>
             <h3 className="text-white text-xl font-bold">Need a Car Key Solution?</h3>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
   title: "Account Access",
@@ -6,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return <div className="light min-h-screen bg-white">{children}</div>;
+  return <Providers><div className="light min-h-screen bg-white">{children}</div></Providers>;
 }

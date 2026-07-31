@@ -27,6 +27,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
-  await prisma.service.delete({ where: { id: Number(id) } });
+  await prisma.service.update({ where: { id: Number(id) }, data: { deletedAt: new Date() } });
   return NextResponse.json({ ok: true });
 }

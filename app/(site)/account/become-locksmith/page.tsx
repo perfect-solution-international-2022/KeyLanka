@@ -29,16 +29,14 @@ export default function BecomeLocksmithPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!auth.user) {
-      setLoading(false);
-      return;
-    }
-    setForm((f) => ({ ...f, fullName: auth.user!.name, email: auth.user!.email }));
-    api
-      .getMyLocksmithApplication()
-      .then(setApplication)
-      .catch(() => setApplication(null))
-      .finally(() => setLoading(false));
+    queueMicrotask(() => {
+      if (!auth.user) {
+        setLoading(false);
+        return;
+      }
+      setForm((f) => ({ ...f, fullName: auth.user!.name, email: auth.user!.email }));
+      api.getMyLocksmithApplication().then(setApplication).catch(() => setApplication(null)).finally(() => setLoading(false));
+    });
   }, [auth.user]);
 
   async function handleSubmit(e: React.FormEvent) {

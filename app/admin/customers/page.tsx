@@ -7,11 +7,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 export default async function AdminCustomersPage() {
-  const users = await prisma.user.findMany({
-    where: { role: "BUYER" },
-    include: { orders: { where: { status: "delivered", deletedAt: null }, select: { total: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [users, orderSummaries] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: "BUYER" },
+      select: { id: true, name: true, email: true, phone: true, createdAt: true, suspendedAt: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.order.groupBy({
+      by: ["userId"],
+      where: { status: "delivered", deletedAt: null },
+      _count: { _all: true },
+      _sum: { total: true },
+    }),
+  ]);
+  const summaryByUser = new Map(orderSummaries.map((summary) => [summary.userId, summary]));
 
   const customers = users.map((u) => ({
     id: u.id,
@@ -19,8 +28,9 @@ export default async function AdminCustomersPage() {
     email: u.email,
     phone: u.phone,
     createdAt: u.createdAt,
-    orderCount: u.orders.length,
-    totalSpent: u.orders.reduce((sum, o) => sum + Number(o.total), 0),
+    suspendedAt: u.suspendedAt,
+    orderCount: summaryByUser.get(u.id)?._count._all ?? 0,
+    totalSpent: Number(summaryByUser.get(u.id)?._sum.total ?? 0),
   }));
 
   return (
@@ -35,6 +45,7 @@ export default async function AdminCustomersPage() {
             <TableRow>
               <TableHead>Customer</TableHead>
               <TableHead>Phone</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Total Spent</TableHead>
               <TableHead className="text-right">Joined</TableHead>
@@ -51,6 +62,7 @@ export default async function AdminCustomersPage() {
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{c.phone ?? "—"}</TableCell>
+                <TableCell><Badge variant={c.suspendedAt ? "destructive" : "outline"}>{c.suspendedAt ? "Suspended" : "Active"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <Badge variant="secondary">{c.orderCount}</Badge>
                 </TableCell>
@@ -70,7 +82,7 @@ export default async function AdminCustomersPage() {
             ))}
             {customers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No customers yet.
                 </TableCell>
               </TableRow>

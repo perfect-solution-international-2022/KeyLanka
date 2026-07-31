@@ -14,7 +14,8 @@ function slugify(s: string) {
 export async function GET(req: NextRequest) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const attributes = await prisma.attribute.findMany({
-    include: { values: { orderBy: { value: "asc" } } },
+    where: { deletedAt: null },
+    include: { values: { where: { deletedAt: null }, orderBy: { value: "asc" } } },
     orderBy: { name: "asc" },
   });
   return NextResponse.json(attributes);

@@ -12,7 +12,7 @@ function serialize<T>(data: unknown): T {
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [product, categories, brands] = await Promise.all([
-    prisma.product.findUnique({ where: { id: Number(id) } }),
+    prisma.product.findFirst({ where: { id: Number(id), deletedAt: null }, include: { categories: true } }),
     getCategories(),
     getBrands(),
   ]);

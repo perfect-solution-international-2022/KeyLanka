@@ -9,7 +9,6 @@ import type { Category } from "@/lib/api";
 import { useAuth, useCart, useWishlist } from "@/app/providers";
 import { isLocksmithAuthorized } from "@/lib/locksmith";
 import CategoryMegaMenu from "./CategoryMegaMenu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -90,7 +89,7 @@ export default function Header({ categories }: { categories: Category[] }) {
         </button>
 
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Image src="/logo-icon.png" alt="Key Lanka" width={56} height={56} className="h-9 w-9 sm:h-14 sm:w-14 object-contain" />
+          <Image src="/logo-icon.webp" alt="Key Lanka" width={56} height={56} priority className="h-9 w-9 sm:h-14 sm:w-14 object-contain" />
           <div className="leading-tight">
             <div className="font-extrabold text-sm sm:text-lg tracking-tight">
               KEY <span className="text-brand">LANKA</span>
@@ -110,6 +109,7 @@ export default function Header({ categories }: { categories: Category[] }) {
             className="flex-1 border border-gray-300 rounded-l-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand"
           />
           <button type="submit" className="bg-brand hover:bg-brand-dark text-white px-4 rounded-r-md flex items-center justify-center">
+            <span className="sr-only">Search</span>
             <SearchIcon />
           </button>
         </form>
@@ -184,6 +184,7 @@ export default function Header({ categories }: { categories: Category[] }) {
           className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand"
         />
         <button type="submit" className="bg-brand hover:bg-brand-dark text-white px-3 rounded-r-md flex items-center justify-center">
+          <span className="sr-only">Search</span>
           <SearchIcon />
         </button>
       </form>
@@ -226,14 +227,21 @@ export default function Header({ categories }: { categories: Category[] }) {
       </div>
 
       {/* Mobile nav drawer */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="light w-[85vw] sm:max-w-sm p-0 overflow-y-auto bg-background text-foreground">
-          <SheetHeader className="border-b border-gray-100">
-            <SheetTitle className="flex items-center gap-2">
-              <Image src="/logo-icon.png" alt="Key Lanka" width={32} height={32} className="h-8 w-8 object-contain" />
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+          <button
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+          />
+          <div className="light absolute inset-y-0 left-0 w-[85vw] max-w-sm overflow-y-auto bg-background text-foreground shadow-xl">
+          <div className="flex items-center justify-between border-b border-gray-100 p-4 font-semibold">
+            <div className="flex items-center gap-2">
+              <Image src="/logo-icon.webp" alt="Key Lanka" width={32} height={32} className="h-8 w-8 object-contain" />
               KEY LANKA
-            </SheetTitle>
-          </SheetHeader>
+            </div>
+            <button onClick={() => setMobileOpen(false)} className="h-10 w-10 text-2xl" aria-label="Close menu">×</button>
+          </div>
 
           <nav className="flex flex-col py-2">
             {NAV_LINKS.map((l) => (
@@ -332,8 +340,9 @@ export default function Header({ categories }: { categories: Category[] }) {
               </Link>
             )}
           </nav>
-        </SheetContent>
-      </Sheet>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -41,9 +41,9 @@ function matchesTab(order: AdminOrder, tab: TabValue) {
   return order.status === "delivered";
 }
 
-export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
+export function OrdersTable({ orders, initialTab = "pending" }: { orders: AdminOrder[]; initialTab?: TabValue }) {
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<TabValue>("pending");
+  const [tab, setTab] = useState<TabValue>(initialTab);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const router = useRouter();
 

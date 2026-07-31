@@ -45,9 +45,9 @@ export async function verifyAuth(req: NextRequest): Promise<TokenPayload | null>
   if (!auth || !Number.isInteger(auth.sessionVersion)) return null;
   const user = await prisma.user.findUnique({
     where: { id: auth.userId },
-    select: { role: true, sessionVersion: true },
+    select: { role: true, sessionVersion: true, suspendedAt: true },
   });
-  if (!user || user.sessionVersion !== auth.sessionVersion) return null;
+  if (!user || user.suspendedAt || user.sessionVersion !== auth.sessionVersion) return null;
   return { userId: auth.userId, role: user.role, sessionVersion: user.sessionVersion };
 }
 
@@ -74,9 +74,9 @@ export async function getVerifiedServerAuth(): Promise<TokenPayload | null> {
   if (!auth || !Number.isInteger(auth.sessionVersion)) return null;
   const user = await prisma.user.findUnique({
     where: { id: auth.userId },
-    select: { role: true, sessionVersion: true },
+    select: { role: true, sessionVersion: true, suspendedAt: true },
   });
-  if (!user || user.sessionVersion !== auth.sessionVersion) return null;
+  if (!user || user.suspendedAt || user.sessionVersion !== auth.sessionVersion) return null;
   return { userId: auth.userId, role: user.role, sessionVersion: user.sessionVersion };
 }
 

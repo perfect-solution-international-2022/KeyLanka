@@ -14,7 +14,8 @@ function slugify(s: string) {
 export async function GET(req: NextRequest) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const categories = await prisma.category.findMany({
-    include: { children: true, _count: { select: { products: true } } },
+    where: { deletedAt: null },
+    include: { children: { where: { deletedAt: null } }, _count: { select: { products: { where: { deletedAt: null } } } } },
     orderBy: { id: "asc" },
   });
   return NextResponse.json(categories);

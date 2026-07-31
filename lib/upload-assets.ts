@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import sharp from "sharp";
 
 export const PRODUCT_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 export const KYC_DOCUMENT_TYPES = new Set([...PRODUCT_IMAGE_TYPES, "application/pdf"]);
@@ -23,6 +24,23 @@ export function fileMatchesContentType(bytes: Uint8Array, contentType: string) {
   }
   if (contentType === "application/pdf") return startsWith(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d]);
   return false;
+}
+
+export async function sanitizeRasterImage(bytes: Uint8Array, contentType: string): Promise<Uint8Array<ArrayBuffer>> {
+  const image = sharp(Buffer.from(bytes), {
+    failOn: "warning",
+    limitInputPixels: 25_000_000,
+    pages: 1,
+  }).rotate();
+
+  let output: Buffer;
+  if (contentType === "image/jpeg") output = await image.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+  else if (contentType === "image/png") output = await image.png({ compressionLevel: 9 }).toBuffer();
+  else if (contentType === "image/webp") output = await image.webp({ quality: 90 }).toBuffer();
+  else if (contentType === "image/gif") output = await image.gif().toBuffer();
+  else throw new Error("Unsupported raster image type");
+
+  return Uint8Array.from(output);
 }
 
 export function documentHasActivePdfContent(bytes: Uint8Array, contentType: string) {

@@ -22,7 +22,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, LogOutIcon } from "lucide-react"
-import { useAuth } from "@/app/providers"
 import { confirmToast } from "@/lib/confirm-toast"
 
 export function NavUser({
@@ -35,13 +34,12 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const auth = useAuth()
   const router = useRouter()
 
   async function handleLogout() {
     const confirmed = await confirmToast("Log out of the admin dashboard?", { confirmLabel: "Log out" })
     if (!confirmed) return
-    await auth.logout()
+    await fetch("/api/auth/logout", { method: "POST" })
     router.push("/account/login")
   }
 

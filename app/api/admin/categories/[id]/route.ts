@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
 
@@ -51,18 +50,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
   const categoryId = Number(id);
 
-  const childCount = await prisma.category.count({ where: { parentId: categoryId } });
+  const childCount = await prisma.category.count({ where: { parentId: categoryId, deletedAt: null } });
   if (childCount > 0) {
     return NextResponse.json({ error: "Delete or reassign subcategories first." }, { status: 409 });
   }
 
-  try {
-    await prisma.category.delete({ where: { id: categoryId } });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
-      return NextResponse.json({ error: "Cannot delete: category still has products." }, { status: 409 });
-    }
-    throw err;
-  }
+  await prisma.category.update({ where: { id: categoryId }, data: { deletedAt: new Date() } });
+  return NextResponse.json({ ok: true });
 }

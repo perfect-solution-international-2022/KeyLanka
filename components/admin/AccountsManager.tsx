@@ -38,7 +38,7 @@ export function AccountsManager() {
   }
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => void refresh());
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

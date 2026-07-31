@@ -51,7 +51,7 @@ export default function ShopContent({
   }, []);
 
   useEffect(() => {
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     api
       .getProducts({
         category: categorySlug || undefined,
@@ -130,9 +130,8 @@ export default function ShopContent({
                   <button
                     onClick={() => {
                       setFiltersOpen(false);
-                      fixedCategorySlug
-                        ? router.push(`/category/${c.slug}`)
-                        : updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)));
+                      if (fixedCategorySlug) router.push(`/category/${c.slug}`);
+                      else updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)));
                     }}
                     className={`flex items-center justify-between w-full text-left px-1 py-1 rounded hover:text-brand ${
                       categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
