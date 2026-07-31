@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [pendingOrders, pendingLocksmith] = await Promise.all([
-    prisma.order.count({ where: { status: "pending" } }),
+    prisma.order.count({ where: { status: "pending", deletedAt: null } }),
     prisma.locksmithApplication.count({ where: { status: "pending" } }),
   ]);
 

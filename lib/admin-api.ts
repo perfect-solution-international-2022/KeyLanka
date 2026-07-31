@@ -151,6 +151,7 @@ export interface AdminOrder {
   paymentMethod: string;
   paid: boolean;
   createdAt: string;
+  deletedAt: string | null;
   user: { id: number; name: string; email: string };
   items: { id: number; name: string; sku: string | null; price: string; quantity: number; productId: number; variantId: number | null }[];
 }
@@ -278,6 +279,7 @@ export const adminApi = {
   getOrder: (id: number) => request<AdminOrder>(`/orders/${id}`),
   updateOrderStatus: (id: number, status: string) =>
     request<AdminOrder>(`/orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  moveOrderToTrash: (id: number) => request<AdminOrder>(`/orders/${id}`, { method: "DELETE" }),
 
   // customers
   getCustomers: () => request<AdminCustomer[]>("/customers"),

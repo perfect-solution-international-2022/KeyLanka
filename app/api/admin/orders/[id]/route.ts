@@ -31,6 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const existing = await prisma.order.findUnique({ where: { id: Number(id) }, include: { items: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.deletedAt) return NextResponse.json({ error: "Orders in Trash cannot be changed" }, { status: 409 });
 
   const order = await prisma.$transaction(async (tx) => {
     // Cancelling releases the stock that was reserved when the order was placed.
@@ -51,6 +52,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     targetType: "ORDER",
     targetId: order.id,
     metadata: { from: existing.status, to: order.status },
+  });
+
+  return NextResponse.json(order);
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdmin(req);
+  if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { id } = await params;
+
+  const existing = await prisma.order.findUnique({ where: { id: Number(id) } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.deletedAt) {
+    return NextResponse.json({ error: "Orders in Trash cannot be deleted" }, { status: 409 });
+  }
+
+  const order = await prisma.order.update({
+    where: { id: existing.id },
+    data: { deletedAt: new Date() },
+    include: { user: { select: { id: true, name: true, email: true } }, items: true },
+  });
+
+  await recordSecurityEvent({
+    req,
+    actorUserId: auth.userId,
+    action: "ADMIN_ORDER_MOVED_TO_TRASH",
+    targetType: "ORDER",
+    targetId: order.id,
+    metadata: { status: order.status },
   });
 
   return NextResponse.json(order);

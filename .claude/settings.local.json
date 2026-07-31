@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(/var/www/keylanka/prisma/migrations/**)",
+      "Bash(mysql:*)"
+    ]
+  }
+}

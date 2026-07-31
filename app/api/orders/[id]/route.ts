@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const order = await prisma.order.findFirst({
-    where: { id: Number(id), userId },
+    where: { id: Number(id), userId, deletedAt: null },
     include: { items: true },
   });
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });

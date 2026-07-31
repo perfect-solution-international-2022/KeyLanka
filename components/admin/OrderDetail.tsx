@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, PackageCheck, Trash2, Truck, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { adminApi, AdminOrder } from "@/lib/admin-api";
 import { formatCurrency } from "@/lib/api";
@@ -41,6 +41,27 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update status");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function moveToTrash() {
+    const confirmed = await confirmToast(`Move ${formatOrderNumber(order.id)} to Trash?`, {
+      confirmLabel: "Move to Trash",
+      description: "This order will be retained and cannot be permanently deleted from Trash.",
+    });
+    if (!confirmed) return;
+    setSaving(true);
+    setError("");
+    try {
+      const updated = await adminApi.moveOrderToTrash(order.id);
+      setOrder(updated);
+      toast.success("Order moved to Trash");
+      router.push("/admin/orders");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to move order to Trash");
     } finally {
       setSaving(false);
     }
@@ -111,7 +132,9 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          {order.status === "pending" ? (
+          {order.deletedAt ? (
+            <p className="text-sm text-muted-foreground">This order is in Trash. It cannot be changed or permanently deleted.</p>
+          ) : order.status === "pending" ? (
             <div className="flex gap-2">
               <button
                 disabled={saving}
@@ -128,7 +151,15 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
                 <XCircle size={15} /> Cancel
               </button>
             </div>
-          ) : order.status !== "cancelled" ? (
+          ) : order.status === "processing" ? (
+            <button disabled={saving} onClick={() => handleStatusChange("shipped")} className="w-full flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium py-2 rounded-md">
+              <Truck size={15} /> Mark as Shipped
+            </button>
+          ) : order.status === "shipped" ? (
+            <button disabled={saving} onClick={() => handleStatusChange("delivered")} className="w-full flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium py-2 rounded-md">
+              <PackageCheck size={15} /> Complete Order
+            </button>
+          ) : order.status !== "cancelled" && order.status !== "delivered" ? (
             <button
               disabled={saving}
               onClick={() => handleStatusChange("cancelled")}
@@ -137,6 +168,12 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
               <XCircle size={15} /> Cancel Order
             </button>
           ) : null}
+
+          {!order.deletedAt && (
+            <button disabled={saving} onClick={moveToTrash} className="w-full flex items-center justify-center gap-1.5 border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-60 text-sm font-medium py-2 rounded-md">
+              <Trash2 size={15} /> Delete to Trash
+            </button>
+          )}
 
           <p className="text-xs text-muted-foreground">Placed {new Date(order.createdAt).toLocaleString()}</p>
         </div>

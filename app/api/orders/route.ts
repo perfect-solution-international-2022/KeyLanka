@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const orders = await prisma.order.findMany({
-    where: { userId },
+    where: { userId, deletedAt: null },
     include: { items: true },
     orderBy: { createdAt: "desc" },
   });

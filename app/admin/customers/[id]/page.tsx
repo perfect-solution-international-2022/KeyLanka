@@ -20,11 +20,12 @@ export default async function AdminCustomerDetailPage({ params }: { params: Prom
   const { id } = await params;
   const customer = await prisma.user.findUnique({
     where: { id: Number(id) },
-    include: { orders: { include: { items: true }, orderBy: { createdAt: "desc" } } },
+    include: { orders: { where: { deletedAt: null }, include: { items: true }, orderBy: { createdAt: "desc" } } },
   });
   if (!customer || customer.role !== "BUYER") notFound();
 
-  const totalSpent = customer.orders.reduce((sum, o) => sum + Number(o.total), 0);
+  const completedOrders = customer.orders.filter((o) => o.status === "delivered");
+  const totalSpent = completedOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
   return (
     <AdminShell title={customer.name}>
@@ -40,8 +41,8 @@ export default async function AdminCustomerDetailPage({ params }: { params: Prom
           <div className="text-sm text-muted-foreground">{customer.phone ?? "—"}</div>
         </div>
         <div className="border rounded-lg p-4 bg-card">
-          <div className="text-xs text-muted-foreground mb-1">Orders Placed</div>
-          <div className="text-2xl font-semibold">{customer.orders.length}</div>
+          <div className="text-xs text-muted-foreground mb-1">Completed Orders</div>
+          <div className="text-2xl font-semibold">{completedOrders.length}</div>
         </div>
         <div className="border rounded-lg p-4 bg-card">
           <div className="text-xs text-muted-foreground mb-1">Total Spent</div>

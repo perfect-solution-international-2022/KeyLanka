@@ -196,9 +196,10 @@ export async function mergeGuestData(sessionId: string | undefined | null, userI
 // --- Admin dashboard ---
 
 export async function getDashboardStats() {
+  const completedOrderWhere: Prisma.OrderWhereInput = { status: "delivered", deletedAt: null };
   const [revenueAgg, totalOrders, totalProducts, totalCustomers] = await Promise.all([
-    prisma.order.aggregate({ _sum: { total: true } }),
-    prisma.order.count(),
+    prisma.order.aggregate({ where: completedOrderWhere, _sum: { total: true } }),
+    prisma.order.count({ where: completedOrderWhere }),
     prisma.product.count(),
     prisma.user.count(),
   ]);
@@ -217,7 +218,7 @@ export async function getDailyOrderStats(days = 30) {
   since.setHours(0, 0, 0, 0);
 
   const orders = await prisma.order.findMany({
-    where: { createdAt: { gte: since } },
+    where: { createdAt: { gte: since }, status: "delivered", deletedAt: null },
     select: { createdAt: true, total: true },
   });
 
@@ -242,6 +243,7 @@ export async function getDailyOrderStats(days = 30) {
 
 export async function getRecentOrders(limit = 8) {
   const orders = await prisma.order.findMany({
+    where: { deletedAt: null },
     take: limit,
     orderBy: { createdAt: "desc" },
     include: { user: { select: { name: true, email: true } }, items: true },
@@ -275,7 +277,7 @@ export async function getRecentCustomers(limit = 8) {
     where: { role: "BUYER" },
     take: limit,
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { orders: true } } },
+    include: { _count: { select: { orders: { where: { status: "delivered", deletedAt: null } } } } },
   });
 
   return serialize<
@@ -305,7 +307,7 @@ export async function getSalesReport(days = 90) {
   since.setHours(0, 0, 0, 0);
 
   const orders = await prisma.order.findMany({
-    where: { createdAt: { gte: since } },
+    where: { createdAt: { gte: since }, deletedAt: null },
     select: { status: true, total: true, paymentMethod: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
@@ -317,7 +319,7 @@ export async function getSalesReport(days = 90) {
     buckets.set(d.toISOString().slice(0, 10), { orders: 0, revenue: 0 });
   }
 
-  const completed = orders.filter((o) => o.status !== "cancelled");
+  const completed = orders.filter((o) => o.status === "delivered");
   for (const o of completed) {
     const key = o.createdAt.toISOString().slice(0, 10);
     const bucket = buckets.get(key);
@@ -376,7 +378,8 @@ export async function getItemReport(days = 90) {
     prisma.orderItem.findMany({
       where: {
         order: {
-          status: { not: "cancelled" },
+          status: "delivered",
+          deletedAt: null,
           createdAt: { gte: since },
         },
       },

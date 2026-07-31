@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   const users = await prisma.user.findMany({
     where: { role: "BUYER" },
-    include: { orders: { select: { total: true } } },
+    include: { orders: { where: { status: "delivered", deletedAt: null }, select: { total: true } } },
     orderBy: { createdAt: "desc" },
   });
 

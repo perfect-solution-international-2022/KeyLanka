@@ -12,12 +12,13 @@ export default async function AdminOrdersPage() {
     include: { user: { select: { id: true, name: true, email: true } }, items: true },
     orderBy: { createdAt: "desc" },
   });
+  const activeOrderCount = orders.filter((order) => !order.deletedAt).length;
 
   return (
     <AdminShell title="Orders">
       <div>
         <h2 className="text-lg font-semibold">Orders</h2>
-        <p className="text-sm text-muted-foreground">{orders.length} orders placed</p>
+        <p className="text-sm text-muted-foreground">{activeOrderCount} active orders</p>
       </div>
       <OrdersTable orders={serialize<AdminOrder[]>(orders)} />
     </AdminShell>

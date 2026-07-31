@@ -28,7 +28,7 @@ export function SectionCards({ stats }: { stats: DashboardStats }) {
           </CardTitle>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="text-muted-foreground">Across all orders placed</div>
+          <div className="text-muted-foreground">Across completed orders</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
@@ -39,7 +39,7 @@ export function SectionCards({ stats }: { stats: DashboardStats }) {
           </CardTitle>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="text-muted-foreground">All-time order count</div>
+          <div className="text-muted-foreground">Completed order count</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">

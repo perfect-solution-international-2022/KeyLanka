@@ -290,8 +290,10 @@ model Order {
   paymentStatusMessage String?
   items                OrderItem[]
   createdAt            DateTime    @default(now())
+  deletedAt            DateTime?
 
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model ShippingSettings {
