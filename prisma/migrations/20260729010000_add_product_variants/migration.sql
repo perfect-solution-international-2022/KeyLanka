@@ -1,8 +1,8 @@
 -- AlterTable
-ALTER TABLE `cartitem` ADD COLUMN `variantId` INTEGER NULL;
+ALTER TABLE `CartItem` ADD COLUMN `variantId` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `orderitem` ADD COLUMN `sku` VARCHAR(191) NULL,
+ALTER TABLE `OrderItem` ADD COLUMN `sku` VARCHAR(191) NULL,
     ADD COLUMN `variantId` INTEGER NULL;
 
 -- CreateTable
