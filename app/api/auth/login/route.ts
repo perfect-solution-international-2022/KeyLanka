@@ -5,9 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { mergeGuestData } from "@/lib/queries";
 import { signToken, authCookieOptions, COOKIE_NAME } from "@/lib/auth-server";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import crypto from "crypto";
-import { generateAdminLoginCode, hashAdminLoginCode } from "@/lib/admin-mfa";
-import { renderAdminLoginCodeEmail, sendMail } from "@/lib/mail";
 import { recordSecurityEvent } from "@/lib/security-audit";
 
 const loginSchema = z.object({
@@ -54,43 +51,6 @@ export async function POST(req: NextRequest) {
       { error: "This account requires a password reset before login" },
       { status: 403 }
     );
-  }
-
-  if (user.role === "ADMIN") {
-    const challengeId = crypto.randomUUID();
-    const code = generateAdminLoginCode();
-    await prisma.$transaction([
-      prisma.adminLoginChallenge.deleteMany({ where: { userId: user.id } }),
-      prisma.adminLoginChallenge.create({
-        data: {
-          id: challengeId,
-          userId: user.id,
-          codeHash: hashAdminLoginCode(challengeId, code),
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        },
-      }),
-    ]);
-    const delivered = await sendMail({
-      to: user.email,
-      subject: "Key Lanka Admin login code",
-      html: renderAdminLoginCodeEmail(user.name, code),
-    });
-    if (!delivered && process.env.NODE_ENV === "production") {
-      await prisma.adminLoginChallenge.delete({ where: { id: challengeId } });
-      return NextResponse.json({ error: "Unable to send the admin verification code" }, { status: 503 });
-    }
-    await recordSecurityEvent({
-      req,
-      actorUserId: user.id,
-      action: "ADMIN_MFA_CHALLENGE_CREATED",
-      targetType: "USER",
-      targetId: user.id,
-    });
-    return NextResponse.json({
-      mfaRequired: true,
-      challengeId,
-      ...(process.env.NODE_ENV !== "production" && !delivered ? { developmentCode: code } : {}),
-    });
   }
 
   const sessionId = req.headers.get("x-session-id");

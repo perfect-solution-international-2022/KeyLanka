@@ -219,15 +219,10 @@ export const api = {
       headers: sessionId ? { "x-session-id": sessionId } : undefined,
     }),
   login: (data: { email: string; password: string }, sessionId?: string) =>
-    request<AuthUser | AdminMfaRequired>("/auth/login", {
+    request<AuthUser>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
       headers: sessionId ? { "x-session-id": sessionId } : undefined,
-    }),
-  completeAdminMfa: (challengeId: string, code: string) =>
-    request<AuthUser>("/auth/admin-mfa", {
-      method: "POST",
-      body: JSON.stringify({ challengeId, code }),
     }),
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request<AuthUser>("/auth/me"),

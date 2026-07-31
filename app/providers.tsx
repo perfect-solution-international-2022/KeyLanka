@@ -158,9 +158,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       loading: authLoading,
       login: async (email, password) => {
         const u = await api.login({ email, password }, sessionId);
-        if ("mfaRequired" in u) {
-          throw new Error("Admin verification is required");
-        }
         setUser(u);
         await Promise.all([refreshCart(), refreshWishlist()]);
         return u;
