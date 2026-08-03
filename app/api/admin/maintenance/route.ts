@@ -57,5 +57,8 @@ export async function POST(req: NextRequest) {
     metadata: {},
   });
 
-  return NextResponse.json({ ok: true, clearedAt: new Date().toISOString() });
+  return NextResponse.json(
+    { ok: true, clearedAt: new Date().toISOString() },
+    { headers: { "Cache-Control": "private, no-store, max-age=0" } },
+  );
 }
