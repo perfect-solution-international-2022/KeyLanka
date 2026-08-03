@@ -34,7 +34,6 @@ export default function CategoryTile({
             src={image}
             alt={name}
             fill
-            unoptimized
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
             className={`object-cover transition-transform ${locked ? "grayscale opacity-60" : "group-hover:scale-105"}`}
           />
@@ -67,7 +66,7 @@ export default function CategoryTile({
   return (
     <Link
       href={href ?? `/category/${slug}`}
-      className="group flex flex-col border border-gray-200 rounded-lg bg-white overflow-hidden hover:border-brand hover:shadow-md transition-all text-center"
+      className="motion-card group flex flex-col border border-gray-200 rounded-lg bg-white overflow-hidden hover:border-brand hover:shadow-md text-center"
     >
       {inner}
     </Link>

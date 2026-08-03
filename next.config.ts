@@ -6,9 +6,6 @@ const scriptSources =
     : "'self' 'unsafe-inline'";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    inlineCss: true,
-  },
   images: {
     contentDispositionType: "attachment",
     formats: ["image/avif", "image/webp"],

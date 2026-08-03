@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="flex items-center gap-2 mb-3">
             <Image src="/logo-icon.webp" alt="Key Lanka" width={44} height={44} className="h-11 w-11 object-contain" />
             <span className="font-extrabold text-white text-lg">
-              KEY <span className="text-[#ff817a]">LANKA</span>
+              KEY <span className="text-brand-on-dark">LANKA</span>
             </span>
           </div>
           <p className="text-sm text-gray-400 leading-relaxed">

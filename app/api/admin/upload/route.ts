@@ -5,7 +5,8 @@ import {
   fileMatchesContentType,
   PRODUCT_IMAGE_MAX_SIZE,
   PRODUCT_IMAGE_TYPES,
-  sanitizeRasterImage,
+  optimizeProductImageToWebp,
+  webpUploadName,
 } from "@/lib/upload-assets";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { recordSecurityEvent } from "@/lib/security-audit";
@@ -41,20 +42,21 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  let storedBytes = bytes;
-  if (malwareScan.unavailable) {
-    try {
-      storedBytes = await sanitizeRasterImage(bytes, file.type);
-    } catch {
-      return NextResponse.json({ error: "The image could not be safely processed" }, { status: 400 });
-    }
+  let storedBytes: Uint8Array;
+  try {
+    // Always re-encode product images. This strips unneeded metadata, applies
+    // lossless/high-quality compression and normalizes EXIF orientation while
+    // preserving the original pixel dimensions.
+    storedBytes = await optimizeProductImageToWebp(bytes, file.type);
+  } catch {
+    return NextResponse.json({ error: "The image could not be safely optimized" }, { status: 400 });
   }
   const asset = await createUploadAsset({
     ownerId: auth.userId,
     visibility: "PUBLIC",
     purpose: "PRODUCT_IMAGE",
-    originalName: file.name,
-    contentType: file.type,
+    originalName: webpUploadName(file.name),
+    contentType: "image/webp",
     bytes: storedBytes,
   });
   await recordSecurityEvent({
@@ -63,8 +65,23 @@ export async function POST(req: NextRequest) {
     action: "ADMIN_PRODUCT_IMAGE_UPLOADED",
     targetType: "UPLOAD_ASSET",
     targetId: asset.id,
-    metadata: malwareScan.unavailable ? { malwareScannerUnavailable: true, sanitizedFallback: true } : undefined,
+    metadata: {
+      optimized: true,
+      originalBytes: bytes.byteLength,
+      storedBytes: storedBytes.byteLength,
+      outputType: "image/webp",
+      ...(malwareScan.unavailable ? { malwareScannerUnavailable: true, sanitizedFallback: true } : {}),
+    },
   });
 
-  return NextResponse.json({ url: `/api/assets/${asset.id}` }, { status: 201 });
+  return NextResponse.json(
+    {
+      url: `/api/assets/${asset.id}`,
+      optimized: true,
+      originalBytes: bytes.byteLength,
+      storedBytes: storedBytes.byteLength,
+      contentType: "image/webp",
+    },
+    { status: 201 },
+  );
 }

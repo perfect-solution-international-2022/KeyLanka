@@ -54,7 +54,7 @@ export default async function SiteLayout({
         ]}
       />
       <Header categories={categories} />
-      <main className="flex-1">{children}</main>
+      <main className="site-page-enter flex-1">{children}</main>
       <Footer />
       <MobileBottomNav />
     </div>

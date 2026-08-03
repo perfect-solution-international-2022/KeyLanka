@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/api";
 import { useCart, useWishlist } from "@/app/providers";
+import { CartIcon, WishlistIcon } from "@/components/commerce-icons";
 
 function Stars({ rating }: { rating: string }) {
   const r = Math.round(Number(rating));
@@ -22,7 +23,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const wishlisted = wishlist.isWishlisted(product.id);
 
   return (
-    <div className="group border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow flex flex-col">
+    <div className="motion-card group flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white hover:shadow-lg">
       <div className="relative bg-gray-50 aspect-square">
         {product.badge && (
           <span
@@ -35,12 +36,15 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
         <button
           onClick={() => wishlist.toggleWishlist(product.id)}
-          aria-label="Toggle wishlist"
-          className={`absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-white shadow flex items-center justify-center text-sm ${
-            wishlisted ? "text-brand" : "text-gray-400"
+          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={wishlisted}
+          className={`absolute top-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all duration-200 hover:scale-105 ${
+            wishlisted
+              ? "border-brand/20 bg-brand-light text-brand"
+              : "border-gray-200 bg-white/95 text-gray-500 hover:border-brand/30 hover:text-brand"
           }`}
         >
-          ♥
+          <WishlistIcon size={18} active={wishlisted} className="transition-transform duration-200" />
         </button>
         <Link href={`/product/${product.slug}`}>
           <Image
@@ -74,9 +78,13 @@ export default function ProductCard({ product }: { product: Product }) {
         <button
           onClick={() => cart.addToCart(product.id, 1)}
           disabled={product.stock === 0}
-          className="mt-auto pt-2 w-full bg-brand hover:bg-brand-dark disabled:bg-gray-300 text-white text-sm font-medium py-2 rounded-md transition-colors"
+          className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand py-2 pt-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:bg-gray-300"
         >
-          {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+          {product.stock === 0 ? (
+            "Out of Stock"
+          ) : (
+            <><CartIcon size={17} /> Add to Cart</>
+          )}
         </button>
       </div>
     </div>

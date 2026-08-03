@@ -32,7 +32,7 @@ export function ShippingSettingsForm({ initialCost }: { initialCost: number }) {
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl rounded-xl border bg-card p-6 shadow-sm">
       <div className="mb-6 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-brand">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand">
           <Truck size={20} />
         </div>
         <div>

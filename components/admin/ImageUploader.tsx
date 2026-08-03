@@ -91,7 +91,7 @@ export function ImageUploader({
             className="h-24 w-24 rounded-md border border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
           >
             {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-            <span className="text-[10px]">{uploading ? "Uploading" : "Add image"}</span>
+            <span className="text-[10px]">{uploading ? "Optimizing" : "Add image"}</span>
           </button>
         )}
       </div>

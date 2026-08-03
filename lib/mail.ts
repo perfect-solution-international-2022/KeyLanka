@@ -37,7 +37,7 @@ function escapeHtml(value: unknown) {
 function layout(title: string, bodyHtml: string) {
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; max-width: 560px; margin: 0 auto; color: #1f2937;">
-      <div style="background:#e8332a; padding: 20px 24px; border-radius: 8px 8px 0 0;">
+      <div style="background:#d62b23; padding: 20px 24px; border-radius: 8px 8px 0 0;">
         <span style="color:#fff; font-size: 18px; font-weight: bold;">KEY LANKA</span>
       </div>
       <div style="border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; padding: 24px;">
@@ -58,7 +58,7 @@ export function renderPasswordResetEmail(name: string, resetUrl: string) {
       <p>Hi ${escapeHtml(name)},</p>
       <p>We received a request to reset your Key Lanka account password. Click the button below to choose a new one. This link expires in 1 hour.</p>
       <p style="margin: 24px 0;">
-        <a href="${escapeHtml(resetUrl)}" style="background:#e8332a; color:#fff; text-decoration:none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display:inline-block;">Reset Password</a>
+        <a href="${escapeHtml(resetUrl)}" style="background:#d62b23; color:#fff; text-decoration:none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display:inline-block;">Reset Password</a>
       </p>
       <p style="color:#6b7280; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
     `

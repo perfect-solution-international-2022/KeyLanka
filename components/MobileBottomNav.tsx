@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Store, ShoppingBag, User } from "lucide-react";
+import { Home, Store, User } from "lucide-react";
 import { useAuth, useCart } from "@/app/providers";
+import { CartIcon } from "@/components/commerce-icons";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
@@ -13,7 +14,7 @@ export default function MobileBottomNav() {
   const items = [
     { href: "/", label: "Home", icon: Home, exact: true },
     { href: "/shop", label: "Shop", icon: Store },
-    { href: "/cart", label: "Cart", icon: ShoppingBag },
+    { href: "/cart", label: "Cart", icon: CartIcon },
     { href: auth.user ? "/account" : "/account/login", label: "Account", icon: User },
   ];
 
@@ -22,7 +23,7 @@ export default function MobileBottomNav() {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 flex items-stretch pb-[env(safe-area-inset-bottom)]">
+    <nav className="site-mobile-nav md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 flex items-stretch pb-[env(safe-area-inset-bottom)]">
       {items.map((item) => {
         const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
         const count = counts[item.href];
@@ -38,7 +39,7 @@ export default function MobileBottomNav() {
             <span className="relative">
               <Icon size={21} strokeWidth={active ? 2.2 : 1.8} />
               {!!count && (
-                <span className="absolute -top-1.5 -right-2 bg-brand text-white text-[9px] rounded-full h-4 w-4 flex items-center justify-center">
+                <span className="commerce-badge absolute -top-1.5 -right-2 bg-brand text-white text-[9px] rounded-full h-4 w-4 flex items-center justify-center">
                   {count}
                 </span>
               )}

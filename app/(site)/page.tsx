@@ -126,7 +126,7 @@ export default async function HomePage() {
     <div>
       <section className="bg-gradient-to-b from-gray-50 to-white overflow-hidden">
         <div className="container-page py-6 md:py-8 grid md:grid-cols-2 gap-6 items-center">
-          <div className="relative z-10">
+          <div className="hero-copy relative z-10">
             <p className="text-brand font-semibold mb-2 text-[23px]">Your Trusted Partner for</p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-gray-900">
               Car Keys &amp; <br />
@@ -144,7 +144,7 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="relative aspect-[1416/767] w-full md:w-[115%] xl:w-[128%] md:justify-self-end md:-mr-6 xl:-mr-12">
+          <div className="hero-visual relative aspect-[1416/767] w-full md:w-[115%] xl:w-[128%] md:justify-self-end md:-mr-6 xl:-mr-12">
             <picture>
               <source media="(max-width: 767px)" srcSet="/hero-mobile.webp" />
               <img
@@ -164,8 +164,8 @@ export default async function HomePage() {
       <section className="border-y border-gray-100 bg-white">
         <div className="container-page py-6 grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
           {TRUST_BADGES.map((b) => (
-            <div key={b.title} className="flex flex-col items-center gap-2">
-              <div className="h-11 w-11 rounded-full bg-brand-light text-brand flex items-center justify-center">
+            <div key={b.title} className="trust-item flex flex-col items-center gap-2">
+              <div className="trust-icon h-11 w-11 rounded-full bg-brand-light text-brand flex items-center justify-center">
                 <b.Icon />
               </div>
               <div>

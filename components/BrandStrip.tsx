@@ -6,7 +6,7 @@ function BrandCard({ b }: { b: Brand }) {
   return (
     <Link
       href={`/brand/${b.slug}`}
-      className="shrink-0 w-36 flex flex-col items-center justify-center gap-2 border border-gray-200 rounded-lg p-4 bg-white hover:border-brand hover:shadow-md transition-all"
+      className="motion-card shrink-0 w-36 flex flex-col items-center justify-center gap-2 border border-gray-200 rounded-lg p-4 bg-white hover:border-brand hover:shadow-md"
     >
       <div className="relative h-10 w-full">
         {b.logo ? (

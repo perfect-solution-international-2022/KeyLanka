@@ -34,13 +34,52 @@ export async function sanitizeRasterImage(bytes: Uint8Array, contentType: string
   }).rotate();
 
   let output: Buffer;
-  if (contentType === "image/jpeg") output = await image.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
-  else if (contentType === "image/png") output = await image.png({ compressionLevel: 9 }).toBuffer();
-  else if (contentType === "image/webp") output = await image.webp({ quality: 90 }).toBuffer();
-  else if (contentType === "image/gif") output = await image.gif().toBuffer();
+  if (contentType === "image/jpeg") {
+    output = await image
+      .jpeg({
+        quality: 95,
+        chromaSubsampling: "4:4:4",
+        mozjpeg: true,
+        progressive: true,
+      })
+      .toBuffer();
+  } else if (contentType === "image/png") {
+    // PNG compression is lossless: pixels and transparency remain unchanged.
+    output = await image.png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
+  } else if (contentType === "image/webp") {
+    output = await image.webp({ quality: 95, smartSubsample: true, effort: 5 }).toBuffer();
+  } else if (contentType === "image/gif") {
+    output = await image.gif({ effort: 7 }).toBuffer();
+  }
   else throw new Error("Unsupported raster image type");
 
   return Uint8Array.from(output);
+}
+
+export async function optimizeProductImageToWebp(
+  bytes: Uint8Array,
+  sourceContentType: string,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const image = sharp(Buffer.from(bytes), {
+    failOn: "warning",
+    limitInputPixels: 25_000_000,
+    pages: 1,
+  }).rotate();
+
+  const output = await image
+    .webp(
+      sourceContentType === "image/png"
+        ? { lossless: true, effort: 6 }
+        : { quality: 95, smartSubsample: true, effort: 6 },
+    )
+    .toBuffer();
+
+  return Uint8Array.from(output);
+}
+
+export function webpUploadName(originalName: string) {
+  const baseName = originalName.replace(/\.[^.]+$/, "") || "image";
+  return `${baseName}.webp`;
 }
 
 export function documentHasActivePdfContent(bytes: Uint8Array, contentType: string) {

@@ -72,7 +72,7 @@ export function MaintenanceSettingsForm({
     <div className="max-w-2xl space-y-6">
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         <div className="mb-6 flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-brand">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand">
             <ConeIcon size={20} />
           </div>
           <div>
@@ -121,7 +121,7 @@ export function MaintenanceSettingsForm({
 
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand">
             <RefreshCwIcon size={20} />
           </div>
           <div className="flex-1">

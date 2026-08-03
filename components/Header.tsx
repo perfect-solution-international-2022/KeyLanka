@@ -9,6 +9,7 @@ import type { Category } from "@/lib/api";
 import { useAuth, useCart, useWishlist } from "@/app/providers";
 import { isLocksmithAuthorized } from "@/lib/locksmith";
 import CategoryMegaMenu from "./CategoryMegaMenu";
+import { CartIcon, WishlistIcon } from "./commerce-icons";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -42,24 +43,6 @@ function UserIcon() {
   );
 }
 
-function HeartIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12 20s-7-4.35-9.5-8.5C.5 8 2.5 4.5 6 4.5c2 0 3.5 1 6 3.5 2.5-2.5 4-3.5 6-3.5 3.5 0 5.5 3.5 3.5 7C19 15.65 12 20 12 20z" />
-    </svg>
-  );
-}
-
-function CartIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <circle cx="9" cy="21" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="18" cy="21" r="1.5" fill="currentColor" stroke="none" />
-      <path d="M2.5 3h2l2.2 12.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 7H6" />
-    </svg>
-  );
-}
-
 export default function Header({ categories }: { categories: Category[] }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -78,7 +61,7 @@ export default function Header({ categories }: { categories: Category[] }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+    <header className="site-header sticky top-0 z-40 bg-white border-b border-gray-200">
       <div className="container-page flex items-center gap-3 sm:gap-6 py-3">
         <button
           onClick={() => setMobileOpen(true)}
@@ -154,19 +137,19 @@ export default function Header({ categories }: { categories: Category[] }) {
             <span className="hidden sm:block text-[11px]">Account</span>
           </Link>
           <Link href="/wishlist" className="relative flex flex-col items-center gap-0.5 text-gray-700 hover:text-brand">
-            <HeartIcon />
+            <WishlistIcon size={21} active={wishlist.count > 0} />
             <span className="hidden sm:block text-[11px]">Wishlist</span>
             {wishlist.count > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-brand text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+              <span className="commerce-badge absolute -top-1.5 -right-2.5 bg-brand text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
                 {wishlist.count}
               </span>
             )}
           </Link>
           <Link href="/cart" className="relative flex flex-col items-center gap-0.5 text-gray-700 hover:text-brand">
-            <CartIcon />
+            <CartIcon size={21} />
             <span className="hidden sm:block text-[11px]">Cart</span>
             {cart.count > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-brand text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+              <span className="commerce-badge absolute -top-1.5 -right-2.5 bg-brand text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
                 {cart.count}
               </span>
             )}

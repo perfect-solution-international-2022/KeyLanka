@@ -8,6 +8,7 @@ import type { Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/api";
 import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { useCart, useWishlist } from "@/app/providers";
+import { CartIcon, WishlistIcon } from "@/components/commerce-icons";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
@@ -231,12 +232,15 @@ export default function ProductDetail({ product }: { product: Product }) {
             )}
             <button
               onClick={() => wishlist.toggleWishlist(product.id)}
-              className={`h-11 w-11 rounded-md border flex items-center justify-center ${
-                wishlisted ? "border-brand text-brand" : "border-gray-300 text-gray-500"
+              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-200 hover:scale-105 ${
+                wishlisted
+                  ? "border-brand/25 bg-brand-light text-brand"
+                  : "border-gray-300 bg-white text-gray-500 hover:border-brand/40 hover:text-brand"
               }`}
-              aria-label="Toggle wishlist"
+              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={wishlisted}
             >
-              ♥
+              <WishlistIcon size={20} active={wishlisted} />
             </button>
           </div>
 
@@ -245,9 +249,9 @@ export default function ProductDetail({ product }: { product: Product }) {
               type="button"
               onClick={handleAddToCart}
               disabled={unavailable || busyAction !== null}
-              className="border border-brand text-brand hover:bg-brand-light disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 font-medium py-3 rounded-md"
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-brand py-3 font-medium text-brand hover:bg-brand-light disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
             >
-              {busyAction === "cart" ? "Adding..." : "Add to Cart"}
+              {busyAction === "cart" ? "Adding..." : <><CartIcon size={18} /> Add to Cart</>}
             </button>
             <button
               type="button"
