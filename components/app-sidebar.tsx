@@ -43,7 +43,7 @@ const data = {
   },
   navSecondary: [
     { title: "Shipping Settings", url: "/admin/shipping", icon: <TruckIcon /> },
-    { title: "Coming Soon Mode", url: "/admin/maintenance", icon: <ConeIcon /> },
+    { title: "Site Maintenance", url: "/admin/maintenance", icon: <ConeIcon /> },
     { title: "View Store", url: "/", icon: <StoreIcon /> },
   ],
 }

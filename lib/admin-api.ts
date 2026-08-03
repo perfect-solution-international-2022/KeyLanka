@@ -235,6 +235,8 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  clearSiteCache: () =>
+    request<{ ok: true; clearedAt: string }>("/maintenance", { method: "POST" }),
 
   // attributes
   getAttributes: () => request<AdminAttribute[]>("/attributes"),

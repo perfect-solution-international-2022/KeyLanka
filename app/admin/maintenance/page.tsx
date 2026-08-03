@@ -8,7 +8,7 @@ export default async function AdminMaintenancePage() {
   const settings = await getMaintenanceSettings();
 
   return (
-    <AdminShell title="Coming Soon Mode">
+    <AdminShell title="Site Maintenance">
       <MaintenanceSettingsForm initialEnabled={settings.enabled} initialMessage={settings.message} />
     </AdminShell>
   );

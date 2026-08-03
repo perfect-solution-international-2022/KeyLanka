@@ -177,7 +177,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="defer-render container-page py-12">
+      <section className="container-page py-12">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
           <Link href="/shop" className="text-brand text-sm font-medium hover:underline">

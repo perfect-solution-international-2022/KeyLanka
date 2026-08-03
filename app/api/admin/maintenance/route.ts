@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 import { getMaintenanceSettings } from "@/lib/queries";
 import { recordSecurityEvent } from "@/lib/security-audit";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -40,4 +40,22 @@ export async function PATCH(req: NextRequest) {
     metadata: { enabled: parsed.data.enabled },
   });
   return NextResponse.json(settings);
+}
+
+export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  revalidatePath("/", "layout");
+  revalidateTag("maintenance-settings", { expire: 0 });
+
+  await recordSecurityEvent({
+    req,
+    actorUserId: auth.userId,
+    action: "ADMIN_SITE_CACHE_CLEARED",
+    targetType: "SITE_CACHE",
+    metadata: {},
+  });
+
+  return NextResponse.json({ ok: true, clearedAt: new Date().toISOString() });
 }
