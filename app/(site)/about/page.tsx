@@ -104,11 +104,15 @@ export default async function AboutPage() {
               </div>
               <div className="flex items-start gap-3">
                 <Phone size={17} className="text-brand shrink-0 mt-0.5" />
-                <span>Land: 011 281 2789 &middot; Mobile: 077 777 7678</span>
+                <span>
+                  Land: <a href="tel:+94112812789" className="hover:underline">011 2 812 789</a>
+                  {" · "}Mobile: <a href="tel:+94765662666" className="hover:underline">076 5 662 666</a>
+                  {" · "}Mobile: <a href="tel:+94777777678" className="hover:underline">077 7 777 678</a>
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <Mail size={17} className="text-brand shrink-0 mt-0.5" />
-                <span>dkranga@yahoo.com</span>
+                <a href="mailto:info@keylanka.lk" className="hover:underline">info@keylanka.lk</a>
               </div>
             </div>
             <Link href="/contact" className="inline-block mt-5 text-brand font-medium text-sm hover:underline">

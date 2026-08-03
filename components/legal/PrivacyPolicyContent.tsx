@@ -32,7 +32,9 @@ export function PrivacyPolicyContent() {
           <p className="font-semibold text-gray-900">Key Lanka</p>
           <p>Address: No. 620, Highlevel Road, Wijerama, Nugegoda, Sri Lanka.</p>
           <p>Email: info@keylanka.lk</p>
-          <p>Phone: 0112 812789</p>
+          <p>
+            Phone: <a href="tel:+94112812789">011 2 812 789</a>, <a href="tel:+94765662666">076 5 662 666</a>, and <a href="tel:+94777777678">077 7 777 678</a>
+          </p>
         </div>
         <p>
           We do not have a designated Data Protection Officer (DPO); however, all privacy-related queries should
@@ -268,7 +270,7 @@ export function PrivacyPolicyContent() {
           </table>
         </div>
         <p>
-          To exercise any of these rights, contact us at info@keylanka.lk or call 0112 812789. We will respond
+          To exercise any of these rights, contact us at info@keylanka.lk or call <a href="tel:+94112812789">011 2 812 789</a>, <a href="tel:+94765662666">076 5 662 666</a>, or <a href="tel:+94777777678">077 7 777 678</a>. We will respond
           within 30 days as required by law.
         </p>
 
@@ -318,7 +320,9 @@ export function PrivacyPolicyContent() {
             </a>
           </p>
           <p>Email: info@keylanka.lk</p>
-          <p>Phone: 0112 812789</p>
+          <p>
+            Phone: <a href="tel:+94112812789">011 2 812 789</a>, <a href="tel:+94765662666">076 5 662 666</a>, and <a href="tel:+94777777678">077 7 777 678</a>
+          </p>
           <p>Address: No. 620, Highlevel Road, Wijerama, Nugegoda, Sri Lanka.</p>
         </div>
       </div>

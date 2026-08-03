@@ -34,9 +34,10 @@ export default function ContactPage() {
         <div className="space-y-2 text-sm text-gray-700">
           <div className="font-semibold text-gray-900">Key Lanka</div>
           <div>No 620 High Level Road, Wijerama, Nugegoda</div>
-          <div>Land: 011 281 2789</div>
-          <div>Mobile: 077 777 7678</div>
-          <div>dkranga@yahoo.com</div>
+          <div>Land: <a href="tel:+94112812789" className="text-brand hover:underline">011 2 812 789</a></div>
+          <div>Mobile: <a href="tel:+94765662666" className="text-brand hover:underline">076 5 662 666</a></div>
+          <div>Mobile: <a href="tel:+94777777678" className="text-brand hover:underline">077 7 777 678</a></div>
+          <div><a href="mailto:info@keylanka.lk" className="text-brand hover:underline">info@keylanka.lk</a></div>
         </div>
       </div>
 

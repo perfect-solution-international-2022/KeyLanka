@@ -45,7 +45,7 @@ function layout(title: string, bodyHtml: string) {
         ${bodyHtml}
       </div>
       <p style="text-align:center; color:#9ca3af; font-size: 12px; margin-top: 16px;">
-        Key Lanka &middot; No 620 High Level Road, Wijerama, Nugegoda &middot; 077 777 7678
+        Key Lanka &middot; No 620 High Level Road, Wijerama, Nugegoda &middot; 011 2 812 789 &middot; 076 5 662 666 &middot; 077 7 777 678
       </p>
     </div>
   `;

@@ -32,8 +32,8 @@ export default async function SiteLayout({
             url: absoluteUrl("/"),
             logo: absoluteUrl("/logo.png"),
             image: absoluteUrl("/og.png"),
-            telephone: "+94 77 777 7678",
-            email: "dkranga@yahoo.com",
+            telephone: ["+94 11 281 2789", "+94 76 566 2666", "+94 77 777 7678"],
+            email: "info@keylanka.lk",
             priceRange: "Rs.",
             address: {
               "@type": "PostalAddress",

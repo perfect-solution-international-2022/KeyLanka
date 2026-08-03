@@ -41,9 +41,10 @@ export default function Footer() {
           <h4 className="text-white font-semibold mb-3">Contact</h4>
           <ul className="space-y-2 text-sm text-gray-400">
             <li>No 620 High Level Road, Wijerama, Nugegoda</li>
-            <li>Land: 011 281 2789</li>
-            <li>Mobile: 077 777 7678</li>
-            <li>dkranga@yahoo.com</li>
+            <li>Land: <a href="tel:+94112812789" className="hover:text-brand">011 2 812 789</a></li>
+            <li>Mobile: <a href="tel:+94765662666" className="hover:text-brand">076 5 662 666</a></li>
+            <li>Mobile: <a href="tel:+94777777678" className="hover:text-brand">077 7 777 678</a></li>
+            <li><a href="mailto:info@keylanka.lk" className="hover:text-brand">info@keylanka.lk</a></li>
           </ul>
         </div>
       </div>

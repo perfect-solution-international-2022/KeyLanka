@@ -38,7 +38,7 @@ import {
 const data = {
   user: {
     name: "Admin",
-    email: "dkranga@yahoo.com",
+    email: "info@keylanka.lk",
     avatar: "",
   },
   navSecondary: [

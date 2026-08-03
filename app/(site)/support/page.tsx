@@ -16,9 +16,10 @@ export default function SupportPage() {
         available to assist locksmiths and customers alike.
       </p>
       <div className="border border-gray-200 rounded-lg p-5 space-y-2 text-sm text-gray-700">
-        <div>Phone: 077 777 7678</div>
-        <div>Land: 011 281 2789</div>
-        <div>Email: dkranga@yahoo.com</div>
+        <div>Land: <a href="tel:+94112812789" className="text-brand hover:underline">011 2 812 789</a></div>
+        <div>Mobile: <a href="tel:+94765662666" className="text-brand hover:underline">076 5 662 666</a></div>
+        <div>Mobile: <a href="tel:+94777777678" className="text-brand hover:underline">077 7 777 678</a></div>
+        <div>Email: <a href="mailto:info@keylanka.lk" className="text-brand hover:underline">info@keylanka.lk</a></div>
         <div>Address: No 620 High Level Road, Wijerama, Nugegoda</div>
       </div>
     </div>
