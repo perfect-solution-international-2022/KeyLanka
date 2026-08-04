@@ -20,7 +20,8 @@ interface OrderDetail {
   shippingPostalCode: string;
   shippingPhone: string;
   paymentMethod: string;
-  items: { id: number; name: string; quantity: number; price: string }[];
+  policyAgreement?: { accepted: boolean; acceptedAt: string; policies: { title: string; version: number }[] } | null;
+  items: { id: number; name: string; quantity: number; price: string; warrantyName?: string | null; warrantyDays?: number | null; warrantyPrice?: string }[];
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -117,8 +118,9 @@ export default function AccountOrderDetailPage() {
               <div>
                 <div className="font-medium text-gray-900">{item.name}</div>
                 <div className="text-xs text-gray-500">Qty {item.quantity}</div>
+                <div className="text-xs text-gray-500">Warranty: {item.warrantyName ?? "No Warranty"}{item.warrantyDays ? ` (${item.warrantyDays} days)` : ""}</div>
               </div>
-              <div className="text-gray-900">{formatCurrency(Number(item.price) * item.quantity)}</div>
+              <div className="text-gray-900">{formatCurrency((Number(item.price) + Number(item.warrantyPrice ?? 0)) * item.quantity)}</div>
             </div>
           ))}
         </div>
@@ -127,6 +129,7 @@ export default function AccountOrderDetailPage() {
           <span>{formatCurrency(order.total)}</span>
         </div>
       </div>
+      {order.policyAgreement?.accepted && <div className="mt-5 rounded-lg border border-gray-200 p-4 text-sm"><div className="font-semibold text-gray-900">Policy Agreement</div><p className="mt-1 text-gray-600">You accepted the selected warranty choice, Warranty Conditions, Terms & Conditions and Refund Policy on {new Date(order.policyAgreement.acceptedAt).toLocaleString()}.</p><p className="mt-2 text-xs text-gray-400">{order.policyAgreement.policies.map((p)=>`${p.title} v${p.version}`).join(" · ")}</p></div>}
     </div>
   );
 }

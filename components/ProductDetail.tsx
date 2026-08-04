@@ -13,6 +13,8 @@ import { CartIcon, WishlistIcon } from "@/components/commerce-icons";
 export default function ProductDetail({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [busyAction, setBusyAction] = useState<"cart" | "buy" | null>(null);
+  const [selectedWarrantyId, setSelectedWarrantyId] = useState<number | null>(null);
+  const [warrantyConditions, setWarrantyConditions] = useState<string | null>(null);
   const router = useRouter();
   const cart = useCart();
   const wishlist = useWishlist();
@@ -65,6 +67,8 @@ export default function ProductDetail({ product }: { product: Product }) {
   const priceSource = resolvePriceSource(product, selectedVariant);
   const hasWholesale = priceSource.wholesalePrice != null;
   const unitPrice = getUnitPrice(priceSource, qty);
+  const selectedWarranty = product.warranties?.find((w) => w.id === selectedWarrantyId) ?? null;
+  const unitPriceWithWarranty = unitPrice + Number(selectedWarranty?.price ?? 0);
   const isWholesaleActive = hasWholesale && qty >= product.wholesaleMinQty;
   const displayStock = selectedVariant ? selectedVariant.stock : product.stock;
   const displaySku = selectedVariant?.sku ?? product.sku;
@@ -82,7 +86,7 @@ export default function ProductDetail({ product }: { product: Product }) {
     }
     setBusyAction("cart");
     try {
-      await cart.addToCart(product.id, qty, selectedVariant?.id);
+      await cart.addToCart(product.id, qty, selectedVariant?.id, selectedWarrantyId ?? undefined);
       toast.success("Added to cart");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not add this product to the cart");
@@ -98,7 +102,7 @@ export default function ProductDetail({ product }: { product: Product }) {
     }
     setBusyAction("buy");
     try {
-      await cart.addToCart(product.id, qty, selectedVariant?.id);
+      await cart.addToCart(product.id, qty, selectedVariant?.id, selectedWarrantyId ?? undefined);
       router.push("/checkout");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start checkout");
@@ -215,6 +219,17 @@ export default function ProductDetail({ product }: { product: Product }) {
           </div>
         )}
 
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-medium text-gray-900">Warranty</p>
+          <div className="space-y-2 rounded-lg border border-gray-200 p-3">
+            <label className="flex cursor-pointer items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2"><input type="radio" name="warranty" checked={selectedWarrantyId === null} onChange={() => setSelectedWarrantyId(null)} className="accent-brand"/>No Warranty</span><strong>Free</strong></label>
+            {(product.warranties ?? []).map((w) => <label key={w.id} className="flex cursor-pointer items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2"><input type="radio" name="warranty" checked={selectedWarrantyId === w.id} onChange={() => setSelectedWarrantyId(w.id)} className="accent-brand"/>{w.name} ({w.days} days)</span><strong>+{formatCurrency(w.price)}</strong></label>)}
+          </div>
+          {selectedWarranty && <button type="button" onClick={async()=>{ const d=await fetch('/api/policies').then(r=>r.json()); setWarrantyConditions(d.find((p:{key:string})=>p.key==='warranty')?.content ?? ''); }} className="mt-2 text-sm text-brand underline">View Warranty Conditions</button>}
+        </div>
+
+        {warrantyConditions !== null && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6"><div className="mb-4 flex justify-between"><h2 className="text-lg font-semibold">Warranty Conditions</h2><button onClick={()=>setWarrantyConditions(null)}>✕</button></div><div className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{warrantyConditions}</div></div></div>}
+
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between gap-3">
             {!product.soldIndividually ? (
@@ -259,7 +274,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               disabled={unavailable || busyAction !== null}
               className="bg-brand hover:bg-brand-dark disabled:bg-gray-300 text-white font-medium py-3 rounded-md"
             >
-              {busyAction === "buy" ? "Opening Checkout..." : `Buy Now — ${formatCurrency(unitPrice * qty)}`}
+              {busyAction === "buy" ? "Opening Checkout..." : `Buy Now — ${formatCurrency(unitPriceWithWarranty * qty)}`}
             </button>
           </div>
         </div>

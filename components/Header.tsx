@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Menu, ChevronRight, ShieldCheck, Clock, Lock } from "lucide-react";
 import type { Category } from "@/lib/api";
 import { useAuth, useCart, useWishlist } from "@/app/providers";
@@ -54,6 +55,23 @@ export default function Header({ categories }: { categories: Category[] }) {
   const auth = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileOpen(false);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileOpen]);
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     router.push(`/shop${search ? `?search=${encodeURIComponent(search)}` : ""}`);
@@ -65,8 +83,10 @@ export default function Header({ categories }: { categories: Category[] }) {
       <div className="container-page flex items-center gap-3 sm:gap-6 py-3">
         <button
           onClick={() => setMobileOpen(true)}
-          className="md:hidden shrink-0 h-9 w-9 flex items-center justify-center text-gray-700"
+          className="md:hidden shrink-0 h-10 w-10 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-800"
           aria-label="Open menu"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation"
         >
           <Menu size={22} />
         </button>
@@ -210,14 +230,14 @@ export default function Header({ categories }: { categories: Category[] }) {
       </div>
 
       {/* Mobile nav drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+      {mobileOpen && typeof document !== "undefined" && createPortal(
+        <div id="mobile-navigation" className="fixed inset-0 z-[100] md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <button
             className="absolute inset-0 bg-black/50"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
-          <div className="light absolute inset-y-0 left-0 w-[85vw] max-w-sm overflow-y-auto bg-background text-foreground shadow-xl">
+          <div className="light absolute inset-y-0 left-0 w-[85vw] max-w-sm overflow-y-auto overscroll-contain bg-background text-foreground shadow-xl pb-[env(safe-area-inset-bottom)]">
           <div className="flex items-center justify-between border-b border-gray-100 p-4 font-semibold">
             <div className="flex items-center gap-2">
               <Image src="/logo-icon.webp" alt="Key Lanka" width={32} height={32} className="h-8 w-8 object-contain" />
@@ -324,7 +344,8 @@ export default function Header({ categories }: { categories: Category[] }) {
             )}
           </nav>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </header>
   );

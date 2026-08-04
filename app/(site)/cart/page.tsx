@@ -33,6 +33,7 @@ export default function CartPage() {
           {cart.items.map((item) => {
             const priceSource = resolvePriceSource(item.product, item.variant);
             const unitPrice = getUnitPrice(priceSource, item.quantity);
+            const warrantyPrice = Number(item.warranty?.price ?? 0);
             const isWholesale =
               priceSource.wholesalePrice != null &&
               item.quantity >= item.product.wholesaleMinQty;
@@ -56,6 +57,7 @@ export default function CartPage() {
                       {item.product.name}
                     </Link>
                     {variantLabel && <p className="text-xs text-gray-500 mt-0.5">{variantLabel}</p>}
+                    <p className="mt-0.5 text-xs text-gray-500">Warranty: {item.warranty ? `${item.warranty.name} (+${formatCurrency(warrantyPrice)})` : "No Warranty"}</p>
                     <div className="text-sm text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
                       {formatCurrency(unitPrice)}
                       {isWholesale && (
@@ -80,7 +82,7 @@ export default function CartPage() {
                     </button>
                   </div>}
                   <div className="w-20 text-right font-semibold text-gray-900 shrink-0">
-                    {formatCurrency(getLineTotal(priceSource, item.quantity))}
+                    {formatCurrency(getLineTotal(priceSource, item.quantity) + warrantyPrice * item.quantity)}
                   </div>
                   <button onClick={() => cart.removeItem(item.id)} className="text-gray-400 hover:text-brand text-sm shrink-0">
                     Remove

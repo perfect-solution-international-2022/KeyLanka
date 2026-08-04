@@ -95,7 +95,7 @@ export function safeDownloadName(name: string) {
 export async function createUploadAsset(input: {
   ownerId: number;
   visibility: "PUBLIC" | "PRIVATE";
-  purpose: "PRODUCT_IMAGE" | "LOCKSMITH_KYC";
+  purpose: "PRODUCT_IMAGE" | "LOCKSMITH_KYC" | "BANK_TRANSFER_SLIP";
   originalName: string;
   contentType: string;
   bytes: Uint8Array;

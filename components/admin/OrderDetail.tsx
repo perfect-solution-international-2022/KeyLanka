@@ -80,8 +80,9 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
                   <div className="text-muted-foreground text-xs">
                     {item.sku ? `SKU ${item.sku} · ` : ""}Qty {item.quantity}
                   </div>
+                  <div className="text-muted-foreground text-xs">Warranty: {item.warrantyName ?? "No Warranty"}{item.warrantyDays ? ` (${item.warrantyDays} days)` : ""}{Number(item.warrantyPrice) > 0 ? ` · ${formatCurrency(item.warrantyPrice)}` : ""}</div>
                 </div>
-                <div>{formatCurrency(Number(item.price) * item.quantity)}</div>
+                <div>{formatCurrency((Number(item.price) + Number(item.warrantyPrice)) * item.quantity)}</div>
               </div>
             ))}
           </div>
@@ -114,6 +115,21 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
             )}
           </div>
         </div>
+
+        {order.paymentMethod === "bank_transfer" && order.paymentSlipAssetId && (
+          <div className="rounded-lg border bg-card p-4 text-sm">
+            <div className="mb-2 font-medium">Bank Transfer Payment Slip</div>
+            <a
+              href={`/api/bank-transfer/slips/${order.paymentSlipAssetId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark"
+            >
+              View Payment Slip
+            </a>
+          </div>
+        )}
+        {order.policyAgreement?.accepted && <div className="rounded-lg border bg-card p-4 text-sm"><div className="font-medium">Customer Policy Agreement</div><p className="mt-1 text-muted-foreground">Accepted Terms, Refund Policy and Warranty Conditions on {new Date(order.policyAgreement.acceptedAt).toLocaleString()}.</p><div className="mt-2 text-xs text-muted-foreground">{order.policyAgreement.policies.map((p)=>`${p.title} v${p.version}`).join(" · ")}</div></div>}
       </div>
 
       <div className="space-y-4">

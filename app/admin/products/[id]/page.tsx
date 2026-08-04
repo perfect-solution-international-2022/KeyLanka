@@ -4,6 +4,7 @@ import { ProductForm } from "@/components/admin/ProductForm";
 import { getCategories, getBrands } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import type { AdminProduct } from "@/lib/admin-api";
+import { toAdminVariant } from "@/lib/product-variants";
 
 function serialize<T>(data: unknown): T {
   return JSON.parse(JSON.stringify(data));
@@ -12,7 +13,10 @@ function serialize<T>(data: unknown): T {
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [product, categories, brands] = await Promise.all([
-    prisma.product.findFirst({ where: { id: Number(id), deletedAt: null }, include: { categories: true } }),
+    prisma.product.findFirst({
+      where: { id: Number(id), deletedAt: null },
+      include: { categories: true, warranties: true, variants: { include: { values: true } } },
+    }),
     getCategories(),
     getBrands(),
   ]);
@@ -21,7 +25,12 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   return (
     <AdminShell title="Edit Product">
-      <ProductForm product={serialize<AdminProduct>(product)} categories={categories} brands={brands} fullWidth />
+      <ProductForm
+        product={serialize<AdminProduct>({ ...product, variants: product.variants.map(toAdminVariant) })}
+        categories={categories}
+        brands={brands}
+        fullWidth
+      />
     </AdminShell>
   );
 }

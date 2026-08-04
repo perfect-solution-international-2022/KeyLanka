@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
-import { variantSchema, saveVariants } from "@/lib/product-variants";
+import { variantSchema, saveVariants, toAdminVariant } from "@/lib/product-variants";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const product = await prisma.product.findFirst({
     where: { id: Number(id), deletedAt: null },
-    include: { categories: true, variants: { include: { values: true } } },
+    include: { categories: true, warranties: true, variants: { include: { values: true } } },
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(product);
+  return NextResponse.json({ ...product, variants: product.variants.map(toAdminVariant) });
 }
 
 const updateSchema = z.object({
@@ -43,6 +43,7 @@ const updateSchema = z.object({
   categoryIds: z.array(z.number().int().positive()).min(1),
   brandId: z.number().nullable().optional(),
   variants: z.array(variantSchema).optional(),
+  warrantyIds: z.array(z.number().int().positive()).default([]),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -94,8 +95,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         lowStockThreshold: data.lowStockThreshold ?? 10,
         allowBackorder: data.allowBackorder ?? false,
         soldIndividually: data.soldIndividually ?? false,
-        rating: data.rating ?? 0,
-        reviewCount: data.reviewCount ?? 0,
+        ...(data.rating !== undefined ? { rating: data.rating } : {}),
+        ...(data.reviewCount !== undefined ? { reviewCount: data.reviewCount } : {}),
         badge: data.badge || null,
         featured: data.featured ?? false,
         shortDescription: data.shortDescription || null,
@@ -109,6 +110,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         categoryId: data.categoryId,
         categories: { set: [...new Set([data.categoryId, ...data.categoryIds])].map((categoryId) => ({ id: categoryId })) },
         brandId: data.brandId ?? null,
+        warranties: { set: data.warrantyIds.map((id) => ({ id })) },
       },
     });
     await saveVariants(tx, updated.id, data.variants ?? []);

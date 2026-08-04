@@ -6,6 +6,7 @@ import { createCheckoutLink } from "@/lib/onepay";
 import { InsufficientStockError, releaseStock, reserveStock } from "@/lib/inventory";
 import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { getShippingCost } from "@/lib/queries";
+import { createPolicyAgreementSnapshot } from "@/lib/policy-agreement";
 
 const schema = z.object({
   shippingName: z.string().min(1),
@@ -14,6 +15,7 @@ const schema = z.object({
   shippingDistrict: z.string().min(1),
   shippingPostalCode: z.string().min(1),
   shippingPhone: z.string().min(1),
+  policyAgreementAccepted: z.literal(true),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   const [user, cartItems] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
-    prisma.cartItem.findMany({ where: { userId }, include: { product: true, variant: true } }),
+    prisma.cartItem.findMany({ where: { userId }, include: { product: true, variant: true, warranty: true } }),
   ]);
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -47,9 +49,10 @@ export async function POST(req: NextRequest) {
       ci.quantity
     )
   );
-  const subtotal = cartItems.reduce((sum, ci, i) => sum + unitPrices[i] * ci.quantity, 0);
+  const subtotal = cartItems.reduce((sum, ci, i) => sum + (unitPrices[i] + Number(ci.warranty?.price ?? 0)) * ci.quantity, 0);
   const shippingCost = await getShippingCost();
   const total = subtotal + shippingCost;
+  const policyAgreement = await createPolicyAgreementSnapshot();
 
   let orderId: number;
   try {
@@ -83,6 +86,7 @@ export async function POST(req: NextRequest) {
           paymentMethod: "onepay",
           status: "pending",
           paid: false,
+          policyAgreement,
           items: {
             create: cartItems.map((ci, i) => ({
               productId: ci.productId,
@@ -91,6 +95,9 @@ export async function POST(req: NextRequest) {
               sku: ci.variant?.sku ?? ci.product.sku,
               price: unitPrices[i],
               quantity: ci.quantity,
+              warrantyName: ci.warranty?.name ?? "No Warranty",
+              warrantyDays: ci.warranty?.days ?? null,
+              warrantyPrice: ci.warranty?.price ?? 0,
             })),
           },
         },

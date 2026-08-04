@@ -48,13 +48,32 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-400">
-        <span>© {new Date().getFullYear()} Key Lanka. All rights reserved.</span>
-        <span className="hidden sm:inline">·</span>
-        <div className="flex items-center gap-4">
+      <div className="border-t border-gray-800">
+        <div className="container-page grid items-center gap-3 py-4 text-center text-xs text-gray-400 lg:grid-cols-[1fr_auto_1fr]">
+        <span className="lg:justify-self-start">© {new Date().getFullYear()} Key Lanka. All rights reserved.</span>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           <Link href="/terms" className="hover:text-brand">Terms &amp; Conditions</Link>
           <Link href="/privacy-policy" className="hover:text-brand">Privacy Policy</Link>
           <Link href="/refund-policy" className="hover:text-brand">No Return &amp; No Refund Policy</Link>
+        </div>
+        <div className="flex items-center justify-center gap-2 lg:justify-self-end">
+          <span>Developed by</span>
+          <a
+            href="https://perfectsolutioninternational.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Developed by Perfect Solution International — opens in a new tab"
+            className="inline-flex transition-opacity hover:opacity-80"
+          >
+            <Image
+              src="https://www.perfectsolutioninternational.com/Logo.webp"
+              alt="Perfect Solution International"
+              width={2000}
+              height={503}
+              className="h-6 w-auto object-contain"
+            />
+          </a>
+        </div>
         </div>
       </div>
     </footer>

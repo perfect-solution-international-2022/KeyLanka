@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     contentDispositionType: "attachment",
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,
+    remotePatterns: [
+      { protocol: "https", hostname: "www.perfectsolutioninternational.com", pathname: "/Logo.webp" },
+    ],
   },
   async headers() {
     return [

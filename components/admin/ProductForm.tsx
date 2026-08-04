@@ -12,6 +12,7 @@ import {
   AdminBrand,
   AdminAttribute,
   AdminProductVariant,
+  AdminWarranty,
 } from "@/lib/admin-api";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -132,6 +133,8 @@ export function ProductForm({
   const [attributes, setAttributes] = useState<AdminAttribute[]>([]);
   const [selectedAttrValues, setSelectedAttrValues] = useState<Record<number, number[]>>({});
   const [variants, setVariants] = useState<AdminProductVariant[]>(product?.variants ?? []);
+  const [warranties, setWarranties] = useState<AdminWarranty[]>([]);
+  const [warrantyIds, setWarrantyIds] = useState<number[]>(product?.warranties?.map((w) => w.id) ?? []);
 
   useEffect(() => {
     adminApi.getAttributes().then((data) => {
@@ -150,6 +153,7 @@ export function ProductForm({
         setSelectedAttrValues(initial);
       }
     });
+    adminApi.getWarranties().then((data) => setWarranties(data.filter((w) => w.active)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -346,6 +350,7 @@ export function ProductForm({
             heightCm: v.heightCm ? Number(v.heightCm) : null,
           }))
         : [],
+      warrantyIds,
     };
 
     try {
@@ -502,6 +507,13 @@ export function ProductForm({
             hidden={activeTab !== "general"}
             className="grid gap-4 py-6 md:grid-cols-2"
           >
+            <div className="space-y-2 md:col-span-2">
+              <Label>Available Warranties</Label>
+              <p className="text-xs text-muted-foreground">No Warranty is automatically available. Select any additional warranties for this product.</p>
+              <div className="flex flex-wrap gap-3 rounded-lg border p-3">
+                {warranties.length === 0 ? <span className="text-sm text-muted-foreground">No warranty types configured.</span> : warranties.map((w) => <label key={w.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={warrantyIds.includes(w.id)} onChange={() => setWarrantyIds((ids) => ids.includes(w.id) ? ids.filter((id) => id !== w.id) : [...ids, w.id])} className="accent-brand" />{w.name} ({w.days} days, Rs. {Number(w.price).toLocaleString()})</label>)}
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="price">Regular Price (Rs.)</Label>
               <Input id="price" type="number" min={0.01} step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="0.00" />

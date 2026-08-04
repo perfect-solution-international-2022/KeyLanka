@@ -81,7 +81,9 @@ export interface AdminProduct {
   categories?: { id: number; name: string }[];
   brand?: { id: number; name: string } | null;
   variants?: AdminProductVariant[];
+  warranties?: AdminWarranty[];
 }
+export interface AdminWarranty { id: number; name: string; days: number; price: string; active: boolean }
 
 export interface AdminProductInput {
   name: string;
@@ -111,6 +113,7 @@ export interface AdminProductInput {
   categoryIds: number[];
   brandId?: number | null;
   variants?: AdminProductVariantInput[];
+  warrantyIds: number[];
 }
 
 export interface AdminCategory {
@@ -153,10 +156,12 @@ export interface AdminOrder {
   shippingPhone: string;
   paymentMethod: string;
   paid: boolean;
+  paymentSlipAssetId: string | null;
   createdAt: string;
   deletedAt: string | null;
   user: { id: number; name: string; email: string };
-  items: { id: number; name: string; sku: string | null; price: string; quantity: number; productId: number; variantId: number | null }[];
+  policyAgreement?: { accepted: boolean; acceptedAt: string; policies: { key: string; title: string; content: string; version: number }[] } | null;
+  items: { id: number; name: string; sku: string | null; price: string; quantity: number; productId: number; variantId: number | null; warrantyName: string | null; warrantyDays: number | null; warrantyPrice: string }[];
 }
 
 export interface AdminCustomer {
@@ -220,6 +225,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const adminApi = {
+  getBankTransferSettings: () => request<{
+    id: number; enabled: boolean; bankName: string; branchName: string; accountName: string; accountNumber: string;
+  }>("/bank-transfer"),
+  updateBankTransferSettings: (data: {
+    enabled: boolean; bankName: string; branchName: string; accountName: string; accountNumber: string;
+  }) => request<{ id: number; enabled: boolean; bankName: string; branchName: string; accountName: string; accountNumber: string }>(
+    "/bank-transfer", { method: "PATCH", body: JSON.stringify(data) }
+  ),
   getShippingSettings: () => request<{ id: number; shippingCost: string }>("/shipping"),
   updateShippingSettings: (data: { shippingCost: number }) =>
     request<{ id: number; shippingCost: string }>("/shipping", {
@@ -240,6 +253,7 @@ export const adminApi = {
 
   // attributes
   getAttributes: () => request<AdminAttribute[]>("/attributes"),
+  getWarranties: () => request<AdminWarranty[]>("/warranties"),
   createAttribute: (data: { name: string; values: string[] }) =>
     request<AdminAttribute>("/attributes", { method: "POST", body: JSON.stringify(data) }),
   updateAttribute: (id: number, data: { name?: string; addValues?: string[] }) =>

@@ -71,7 +71,9 @@ export interface Product {
   brandId: number | null;
   brand?: Brand | null;
   variants?: ProductVariant[];
+  warranties?: Warranty[];
 }
+export interface Warranty { id: number; name: string; days: number; price: string; active: boolean }
 
 export interface ProductListResponse {
   items: Product[];
@@ -93,7 +95,8 @@ export interface Order {
   shippingPostalCode: string;
   shippingPhone: string;
   paymentMethod: string;
-  items: { id: number; name: string; quantity: number; price: string }[];
+  policyAgreement?: { accepted: boolean; acceptedAt: string; policies: { key: string; title: string; content: string; version: number }[] } | null;
+  items: { id: number; name: string; quantity: number; price: string; warrantyName?: string | null; warrantyDays?: number | null; warrantyPrice?: string }[];
 }
 
 export interface Service {
@@ -111,6 +114,8 @@ export interface CartItem {
   quantity: number;
   product: Product;
   variant?: ProductVariant | null;
+  warrantyId: number | null;
+  warranty?: Warranty | null;
 }
 
 export interface WishlistItem {
@@ -199,11 +204,11 @@ export const api = {
   // cart
   getCart: (sessionId: string) =>
     request<CartItem[]>("/cart", { headers: { "x-session-id": sessionId } }),
-  addToCart: (sessionId: string, productId: number, quantity = 1, variantId?: number) =>
+  addToCart: (sessionId: string, productId: number, quantity = 1, variantId?: number, warrantyId?: number) =>
     request<CartItem>("/cart", {
       method: "POST",
       headers: { "x-session-id": sessionId },
-      body: JSON.stringify({ productId, quantity, ...(variantId ? { variantId } : {}) }),
+      body: JSON.stringify({ productId, quantity, ...(variantId ? { variantId } : {}), ...(warrantyId ? { warrantyId } : {}) }),
     }),
   updateCartItem: (sessionId: string, id: number, quantity: number) =>
     request<CartItem>(`/cart/${id}`, {

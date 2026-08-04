@@ -29,6 +29,8 @@ import {
   BarChart3Icon,
   KeyRoundIcon,
   TruckIcon,
+  LandmarkIcon,
+  ShieldPlusIcon,
   ShieldCheckIcon,
   ConeIcon,
   ListTreeIcon,
@@ -42,6 +44,8 @@ const data = {
     avatar: "",
   },
   navSecondary: [
+    { title: "Bank Transfer", url: "/admin/bank-transfer", icon: <LandmarkIcon /> },
+    { title: "Warranty & Policies", url: "/admin/warranty", icon: <ShieldPlusIcon /> },
     { title: "Shipping Settings", url: "/admin/shipping", icon: <TruckIcon /> },
     { title: "Site Maintenance", url: "/admin/maintenance", icon: <ConeIcon /> },
     { title: "View Store", url: "/", icon: <StoreIcon /> },

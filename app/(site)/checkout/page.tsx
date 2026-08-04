@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { CreditCard, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
+import { CreditCard, ShieldCheck, ChevronRight, Loader2, Landmark, Upload } from "lucide-react";
 import { useAuth, useCart } from "@/app/providers";
 import { formatCurrency } from "@/lib/api";
 import { getUnitPrice, getLineTotal, resolvePriceSource } from "@/lib/pricing";
@@ -50,6 +50,17 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [openPolicy, setOpenPolicy] = useState<LegalPolicy>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"onepay" | "bank_transfer">("onepay");
+  const [bankSettings, setBankSettings] = useState<{ available: boolean; bankName?: string; branchName?: string; accountName?: string; accountNumber?: string }>({ available: false });
+  const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (auth.user?.locksmithStatus !== "approved") return;
+    fetch("/api/bank-transfer", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setBankSettings(data))
+      .catch(() => setBankSettings({ available: false }));
+  }, [auth.user?.locksmithStatus]);
 
   if (auth.loading || cart.loading) {
     return <div className="container-page py-16 text-center text-gray-400">Loading...</div>;
@@ -88,6 +99,23 @@ export default function CheckoutPage() {
     setError("");
     setLoading(true);
     try {
+      if (paymentMethod === "bank_transfer") {
+        if (!paymentSlip) throw new Error("Please upload your bank payment slip");
+        const uploadBody = new FormData();
+        uploadBody.append("file", paymentSlip);
+        const uploadRes = await fetch("/api/bank-transfer/upload", { method: "POST", body: uploadBody });
+        const upload = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(upload.error ?? "Could not upload payment slip");
+        const orderRes = await fetch("/api/orders", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shippingName, shippingLine1, shippingCity, shippingDistrict, shippingPostalCode, shippingPhone, paymentMethod, paymentSlipAssetId: upload.assetId, policyAgreementAccepted: true }),
+        });
+        const order = await orderRes.json();
+        if (!orderRes.ok) throw new Error(order.error ?? "Could not place order");
+        await cart.refresh();
+        window.location.href = `/account/orders/${order.id}`;
+        return;
+      }
       const res = await fetch("/api/checkout/onepay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,6 +126,7 @@ export default function CheckoutPage() {
           shippingDistrict,
           shippingPostalCode,
           shippingPhone,
+          policyAgreementAccepted: true,
         }),
       });
       const data = await res.json();
@@ -199,7 +228,7 @@ export default function CheckoutPage() {
               </span>
               Payment Method
             </h2>
-            <div className="flex items-center gap-3 border border-brand bg-brand-light rounded-xl p-4">
+            <button type="button" onClick={() => setPaymentMethod("onepay")} className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left ${paymentMethod === "onepay" ? "border-brand bg-brand-light" : "border-gray-200"}`}>
               <div className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center shrink-0">
                 <CreditCard size={17} />
               </div>
@@ -207,7 +236,25 @@ export default function CheckoutPage() {
                 <div className="text-sm font-semibold text-brand">Card / Mobile Wallet</div>
                 <div className="text-xs text-gray-500 mt-0.5">Pay securely via OnePay</div>
               </div>
-            </div>
+            </button>
+            {bankSettings.available && <div className="mt-3 space-y-4">
+              <button type="button" onClick={() => setPaymentMethod("bank_transfer")} className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left ${paymentMethod === "bank_transfer" ? "border-brand bg-brand-light" : "border-gray-200"}`}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-white"><Landmark size={17} /></div>
+                <div><div className="text-sm font-semibold text-brand">Bank Transfer</div><div className="mt-0.5 text-xs text-gray-500">Approved locksmith members only</div></div>
+              </button>
+              {paymentMethod === "bank_transfer" && <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div><dt className="text-gray-500">Bank</dt><dd className="font-semibold text-gray-900">{bankSettings.bankName}</dd></div>
+                  <div><dt className="text-gray-500">Branch</dt><dd className="font-semibold text-gray-900">{bankSettings.branchName}</dd></div>
+                  <div><dt className="text-gray-500">Account Name</dt><dd className="font-semibold text-gray-900">{bankSettings.accountName}</dd></div>
+                  <div><dt className="text-gray-500">Account Number</dt><dd className="font-semibold text-gray-900">{bankSettings.accountNumber}</dd></div>
+                </dl>
+                <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-white p-4">
+                  <Upload size={18} className="text-brand" /><span className="min-w-0 flex-1 text-sm"><span className="font-medium text-gray-900">Upload payment slip</span><span className="block truncate text-xs text-gray-500">{paymentSlip?.name ?? "JPG, PNG, WebP or PDF (max 8MB)"}</span></span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required={paymentMethod === "bank_transfer"} className="sr-only" onChange={(e) => setPaymentSlip(e.target.files?.[0] ?? null)} />
+                </label>
+              </div>}
+            </div>}
           </section>
 
           <label className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600 leading-relaxed cursor-pointer">
@@ -223,6 +270,8 @@ export default function CheckoutPage() {
               <LegalPolicyLink onOpen={() => setOpenPolicy("privacy")}>Privacy Policy</LegalPolicyLink>,{" "}
               <LegalPolicyLink onOpen={() => setOpenPolicy("refund")}>No Return &amp; No Refund Policy</LegalPolicyLink>,
               and confirm that the vehicle information I have provided is accurate.
+              I also accept the selected warranty choice (including No Warranty where selected) and the applicable Warranty Conditions.
+              {" "}<LegalPolicyLink onOpen={() => setOpenPolicy("warranty")}>View Warranty Conditions</LegalPolicyLink>.
             </span>
           </label>
 
@@ -233,7 +282,7 @@ export default function CheckoutPage() {
             className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-colors"
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? "Processing..." : "Continue to Payment"}
+            {loading ? "Processing..." : paymentMethod === "bank_transfer" ? "Submit Bank Transfer Order" : "Continue to Payment"}
           </button>
           <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
             <ShieldCheck size={13} /> Secure checkout — your information is protected
@@ -265,12 +314,13 @@ export default function CheckoutPage() {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-gray-900 line-clamp-1">{item.product.name}</div>
                     {variantLabel && <div className="text-xs text-gray-400">{variantLabel}</div>}
+                    <div className="text-xs text-gray-400">{item.warranty ? `${item.warranty.name} (+${formatCurrency(item.warranty.price)})` : "No Warranty"}</div>
                     <div className="text-xs text-gray-500">
-                      {formatCurrency(getUnitPrice(priceSource, item.quantity))} each
+                      {formatCurrency(getUnitPrice(priceSource, item.quantity) + Number(item.warranty?.price ?? 0))} each
                     </div>
                   </div>
                   <div className="text-sm font-semibold text-gray-900 shrink-0">
-                    {formatCurrency(getLineTotal(priceSource, item.quantity))}
+                    {formatCurrency(getLineTotal(priceSource, item.quantity) + Number(item.warranty?.price ?? 0) * item.quantity)}
                   </div>
                 </div>
               );

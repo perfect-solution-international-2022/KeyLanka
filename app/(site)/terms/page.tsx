@@ -1,4 +1,4 @@
-import { TermsContent } from "@/components/legal/TermsContent";
+import { ManagedPolicy } from "@/components/legal/ManagedPolicy";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -7,10 +7,11 @@ export const metadata = pageMetadata({
   path: "/terms",
 });
 
+export const dynamic = "force-dynamic";
 export default function TermsPage() {
   return (
     <div className="container-page py-14 max-w-3xl">
-      <TermsContent />
+      <ManagedPolicy policyKey="terms" />
     </div>
   );
 }

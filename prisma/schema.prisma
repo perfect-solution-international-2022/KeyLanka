@@ -72,6 +72,7 @@ model Product {
   wishlistItems     WishlistItem[]
   orderItems        OrderItem[]
   variants          ProductVariant[]
+  warranties        Warranty[]       @relation("ProductWarranties")
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   deletedAt         DateTime?
@@ -204,15 +205,16 @@ model SecurityAuditLog {
 }
 
 model UploadAsset {
-  id           String   @id @default(cuid()) @db.VarChar(191)
-  ownerId      Int?
-  owner        User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  visibility   String   @db.VarChar(16)
-  purpose      String   @db.VarChar(32)
-  originalName String
-  contentType  String   @db.VarChar(100)
-  bytes        Bytes    @db.LongBlob
-  createdAt    DateTime @default(now())
+  id                String   @id @default(cuid()) @db.VarChar(191)
+  ownerId           Int?
+  owner             User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  visibility        String   @db.VarChar(16)
+  purpose           String   @db.VarChar(32)
+  originalName      String
+  contentType       String   @db.VarChar(100)
+  bytes             Bytes    @db.LongBlob
+  createdAt         DateTime @default(now())
+  bankTransferOrder Order?   @relation("BankTransferSlip")
 
   @@index([ownerId])
   @@index([visibility, purpose])
@@ -260,21 +262,24 @@ model Address {
 }
 
 model CartItem {
-  id        Int             @id @default(autoincrement())
-  userId    Int?
-  sessionId String?
-  productId Int
-  product   Product         @relation(fields: [productId], references: [id])
-  variantId Int?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  user      User?           @relation(fields: [userId], references: [id])
-  quantity  Int             @default(1)
-  createdAt DateTime        @default(now())
+  id         Int             @id @default(autoincrement())
+  userId     Int?
+  sessionId  String?
+  productId  Int
+  product    Product         @relation(fields: [productId], references: [id])
+  variantId  Int?
+  variant    ProductVariant? @relation(fields: [variantId], references: [id])
+  warrantyId Int?
+  warranty   Warranty?       @relation(fields: [warrantyId], references: [id])
+  user       User?           @relation(fields: [userId], references: [id])
+  quantity   Int             @default(1)
+  createdAt  DateTime        @default(now())
 
   @@index([userId])
   @@index([sessionId])
   @@index([productId])
   @@index([variantId])
+  @@index([warrantyId])
 }
 
 model WishlistItem {
@@ -292,24 +297,27 @@ model WishlistItem {
 }
 
 model Order {
-  id                   Int         @id @default(autoincrement())
+  id                   Int          @id @default(autoincrement())
   userId               Int
-  user                 User        @relation(fields: [userId], references: [id])
-  status               String      @default("pending")
-  total                Decimal     @db.Decimal(10, 2)
-  shippingCost         Decimal     @default(0) @db.Decimal(10, 2)
+  user                 User         @relation(fields: [userId], references: [id])
+  status               String       @default("pending")
+  total                Decimal      @db.Decimal(10, 2)
+  shippingCost         Decimal      @default(0) @db.Decimal(10, 2)
   shippingName         String
   shippingLine1        String
   shippingCity         String
-  shippingDistrict     String      @default("")
-  shippingPostalCode   String      @default("")
+  shippingDistrict     String       @default("")
+  shippingPostalCode   String       @default("")
   shippingPhone        String
-  paymentMethod        String      @default("cod")
-  paid                 Boolean     @default(false)
-  transactionId        String?     @unique
+  paymentMethod        String       @default("cod")
+  paid                 Boolean      @default(false)
+  transactionId        String?      @unique
   paymentStatusMessage String?
+  paymentSlipAssetId   String?      @unique @db.VarChar(191)
+  paymentSlip          UploadAsset? @relation("BankTransferSlip", fields: [paymentSlipAssetId], references: [id])
+  policyAgreement      Json?
   items                OrderItem[]
-  createdAt            DateTime    @default(now())
+  createdAt            DateTime     @default(now())
   deletedAt            DateTime?
 
   @@index([userId])
@@ -324,6 +332,16 @@ model ShippingSettings {
   updatedAt    DateTime @updatedAt
 }
 
+model BankTransferSettings {
+  id            Int      @id @default(1)
+  enabled       Boolean  @default(false)
+  bankName      String   @default("") @db.VarChar(120)
+  branchName    String   @default("") @db.VarChar(120)
+  accountName   String   @default("") @db.VarChar(160)
+  accountNumber String   @default("") @db.VarChar(80)
+  updatedAt     DateTime @updatedAt
+}
+
 model MaintenanceSettings {
   id        Int      @id @default(1)
   enabled   Boolean  @default(false)
@@ -332,21 +350,44 @@ model MaintenanceSettings {
 }
 
 model OrderItem {
-  id        Int             @id @default(autoincrement())
-  orderId   Int
-  order     Order           @relation(fields: [orderId], references: [id])
-  productId Int
-  product   Product         @relation(fields: [productId], references: [id])
-  variantId Int?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  name      String
-  sku       String?
-  price     Decimal         @db.Decimal(10, 2)
-  quantity  Int
+  id            Int             @id @default(autoincrement())
+  orderId       Int
+  order         Order           @relation(fields: [orderId], references: [id])
+  productId     Int
+  product       Product         @relation(fields: [productId], references: [id])
+  variantId     Int?
+  variant       ProductVariant? @relation(fields: [variantId], references: [id])
+  name          String
+  sku           String?
+  price         Decimal         @db.Decimal(10, 2)
+  quantity      Int
+  warrantyName  String?
+  warrantyDays  Int?
+  warrantyPrice Decimal         @default(0) @db.Decimal(10, 2)
 
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
+}
+
+model Warranty {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(120)
+  days      Int
+  price     Decimal    @default(0) @db.Decimal(10, 2)
+  active    Boolean    @default(true)
+  products  Product[]  @relation("ProductWarranties")
+  cartItems CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Policy {
+  key       String   @id @db.VarChar(40)
+  title     String   @db.VarChar(160)
+  content   String   @db.LongText
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
 }
 
 model Service {

@@ -139,6 +139,7 @@ export const getProductBySlug = cache(async (slug: string) => {
     include: {
       category: { include: { parent: true } },
       brand: true,
+      warranties: { where: { active: true }, orderBy: { days: "asc" } },
       variants: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
     },
   });
@@ -166,6 +167,14 @@ export async function getShippingSettings() {
 export async function getShippingCost(): Promise<number> {
   const settings = await getShippingSettings();
   return Number(settings.shippingCost);
+}
+
+export async function getBankTransferSettings() {
+  return prisma.bankTransferSettings.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1 },
+  });
 }
 
 export async function getMaintenanceSettings() {

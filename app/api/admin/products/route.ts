@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
-import { variantSchema, saveVariants } from "@/lib/product-variants";
+import { variantSchema, saveVariants, toAdminVariant } from "@/lib/product-variants";
 
 export async function GET(req: NextRequest) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
 
   const products = await prisma.product.findMany({
     where: { deletedAt: null, ...(search ? { name: { contains: search } } : {}) },
-    include: { category: true, categories: true, brand: true, variants: { include: { values: true } } },
+    include: { category: true, categories: true, brand: true, warranties: true, variants: { include: { values: true } } },
     orderBy: { id: "desc" },
   });
-  return NextResponse.json(products);
+  return NextResponse.json(
+    products.map((product) => ({ ...product, variants: product.variants.map(toAdminVariant) }))
+  );
 }
 
 const productSchema = z.object({
@@ -46,6 +48,7 @@ const productSchema = z.object({
   categoryIds: z.array(z.number().int().positive()).min(1),
   brandId: z.number().nullable().optional(),
   variants: z.array(variantSchema).optional(),
+  warrantyIds: z.array(z.number().int().positive()).default([]),
 });
 
 function slugify(s: string) {
@@ -113,6 +116,7 @@ export async function POST(req: NextRequest) {
         categoryId: data.categoryId,
         categories: { connect: [...new Set([data.categoryId, ...data.categoryIds])].map((id) => ({ id })) },
         brandId: data.brandId ?? null,
+        warranties: { connect: data.warrantyIds.map((id) => ({ id })) },
       },
     });
     await saveVariants(tx, created.id, data.variants ?? []);

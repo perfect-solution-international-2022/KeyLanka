@@ -7,6 +7,7 @@ import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { formatOrderNumber } from "@/lib/order-number";
 import { sendMail, renderOrderConfirmationEmail } from "@/lib/mail";
 import { getShippingCost } from "@/lib/queries";
+import { createPolicyAgreementSnapshot } from "@/lib/policy-agreement";
 
 const createOrderSchema = z.object({
   shippingName: z.string().min(1),
@@ -16,6 +17,8 @@ const createOrderSchema = z.object({
   shippingPostalCode: z.string().min(1),
   shippingPhone: z.string().min(1),
   paymentMethod: z.enum(["cod", "bank_transfer"]).default("cod"), // onepay orders go through /api/checkout/onepay instead
+  paymentSlipAssetId: z.string().min(1).optional(),
+  policyAgreementAccepted: z.literal(true),
 });
 
 export async function GET(req: NextRequest) {
@@ -39,9 +42,22 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   const data = parsed.data;
 
+  if (data.paymentMethod === "bank_transfer") {
+    const [user, settings, slip] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { locksmithStatus: true } }),
+      prisma.bankTransferSettings.findUnique({ where: { id: 1 } }),
+      data.paymentSlipAssetId
+        ? prisma.uploadAsset.findFirst({ where: { id: data.paymentSlipAssetId, ownerId: userId, visibility: "PRIVATE", purpose: "BANK_TRANSFER_SLIP", bankTransferOrder: null }, select: { id: true } })
+        : null,
+    ]);
+    if (user?.locksmithStatus !== "approved") return NextResponse.json({ error: "Bank transfer is only available to approved locksmith members" }, { status: 403 });
+    if (!settings?.enabled) return NextResponse.json({ error: "Bank transfer is currently unavailable" }, { status: 409 });
+    if (!slip) return NextResponse.json({ error: "Upload a valid payment slip" }, { status: 400 });
+  }
+
   const cartItems = await prisma.cartItem.findMany({
     where: { userId },
-    include: { product: true, variant: true },
+    include: { product: true, variant: true, warranty: true },
   });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
 
@@ -60,9 +76,10 @@ export async function POST(req: NextRequest) {
       ci.quantity
     )
   );
-  const subtotal = cartItems.reduce((sum, ci, i) => sum + unitPrices[i] * ci.quantity, 0);
+  const subtotal = cartItems.reduce((sum, ci, i) => sum + (unitPrices[i] + Number(ci.warranty?.price ?? 0)) * ci.quantity, 0);
   const shippingCost = await getShippingCost();
   const total = subtotal + shippingCost;
+  const policyAgreement = await createPolicyAgreementSnapshot();
 
   try {
     const order = await prisma.$transaction(async (tx) => {
@@ -89,6 +106,8 @@ export async function POST(req: NextRequest) {
           shippingPostalCode: data.shippingPostalCode,
           shippingPhone: data.shippingPhone,
           paymentMethod: data.paymentMethod,
+          paymentSlipAssetId: data.paymentMethod === "bank_transfer" ? data.paymentSlipAssetId : null,
+          policyAgreement,
           items: {
             create: cartItems.map((ci, i) => ({
               productId: ci.productId,
@@ -97,6 +116,9 @@ export async function POST(req: NextRequest) {
               sku: ci.variant?.sku ?? ci.product.sku,
               price: unitPrices[i],
               quantity: ci.quantity,
+              warrantyName: ci.warranty?.name ?? "No Warranty",
+              warrantyDays: ci.warranty?.days ?? null,
+              warrantyPrice: ci.warranty?.price ?? 0,
             })),
           },
         },

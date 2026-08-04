@@ -11,7 +11,7 @@ interface CartContextValue {
   count: number;
   subtotal: number;
   shippingCost: number;
-  addToCart: (productId: number, quantity?: number, variantId?: number) => Promise<void>;
+  addToCart: (productId: number, quantity?: number, variantId?: number, warrantyId?: number) => Promise<void>;
   updateQuantity: (id: number, quantity: number) => Promise<void>;
   removeItem: (id: number) => Promise<void>;
   refresh: () => Promise<void>;
@@ -117,12 +117,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       loading: cartLoading,
       count: cartItems.reduce((sum, i) => sum + i.quantity, 0),
       subtotal: cartItems.reduce(
-        (sum, i) => sum + getLineTotal(resolvePriceSource(i.product, i.variant), i.quantity),
+        (sum, i) => sum + getLineTotal(resolvePriceSource(i.product, i.variant), i.quantity) + Number(i.warranty?.price ?? 0) * i.quantity,
         0
       ),
       shippingCost,
-      addToCart: async (productId, quantity = 1, variantId) => {
-        await api.addToCart(sessionId, productId, quantity, variantId);
+      addToCart: async (productId, quantity = 1, variantId, warrantyId) => {
+        await api.addToCart(sessionId, productId, quantity, variantId, warrantyId);
         await refreshCart();
       },
       updateQuantity: async (id, quantity) => {
