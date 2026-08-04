@@ -13,6 +13,7 @@ import {
   AdminAttribute,
   AdminProductVariant,
   AdminWarranty,
+  AdminCondition,
 } from "@/lib/admin-api";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ function blankVariant(base: {
     heightCm: null,
     image: null,
     isDefault,
+    conditionIds: [],
     attributeValueIds,
   };
 }
@@ -120,6 +122,7 @@ export function ProductForm({
           : []
   );
   const [brandId, setBrandId] = useState(product?.brandId ? String(product.brandId) : "");
+  const [conditionIds, setConditionIds] = useState<number[]>(product?.conditions?.map((condition) => condition.id) ?? []);
   const [images, setImages] = useState<string[]>(product?.images ?? []);
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle ?? "");
   const [metaDescription, setMetaDescription] = useState(product?.metaDescription ?? "");
@@ -134,6 +137,7 @@ export function ProductForm({
   const [selectedAttrValues, setSelectedAttrValues] = useState<Record<number, number[]>>({});
   const [variants, setVariants] = useState<AdminProductVariant[]>(product?.variants ?? []);
   const [warranties, setWarranties] = useState<AdminWarranty[]>([]);
+  const [conditions, setConditions] = useState<AdminCondition[]>([]);
   const [warrantyIds, setWarrantyIds] = useState<number[]>(product?.warranties?.map((w) => w.id) ?? []);
   const [allowNoWarranty, setAllowNoWarranty] = useState(product?.allowNoWarranty ?? true);
 
@@ -155,6 +159,7 @@ export function ProductForm({
       }
     });
     adminApi.getWarranties().then((data) => setWarranties(data.filter((w) => w.active)));
+    adminApi.getConditions().then(setConditions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -341,6 +346,7 @@ export function ProductForm({
       categoryId: categoryIds.includes(product?.categoryId ?? -1) ? product!.categoryId : categoryIds[0],
       categoryIds,
       brandId: brandId ? Number(brandId) : null,
+      conditionIds,
       variants: isVariable
         ? variants.map((v) => ({
             ...v,
@@ -355,6 +361,7 @@ export function ProductForm({
             lengthCm: v.lengthCm ? Number(v.lengthCm) : null,
             widthCm: v.widthCm ? Number(v.widthCm) : null,
             heightCm: v.heightCm ? Number(v.heightCm) : null,
+            conditionIds: v.conditionIds,
           }))
         : [],
       warrantyIds,
@@ -561,6 +568,14 @@ export function ProductForm({
                 {brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
               </select>
             </div>
+            {!isVariable && <div className="space-y-1.5 md:col-span-2">
+              <Label>Conditions</Label>
+              <div className="flex flex-wrap gap-3 rounded-lg border p-3">
+                {conditions.length === 0 ? <span className="text-sm text-muted-foreground">No conditions configured.</span> : conditions.map((condition) => <label key={condition.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={conditionIds.includes(condition.id)} onChange={() => setConditionIds((ids) => ids.includes(condition.id) ? ids.filter((id) => id !== condition.id) : [...ids, condition.id])} className="accent-brand" />{condition.name}
+                </label>)}
+              </div>
+            </div>}
             <div className="space-y-1.5">
               <Label htmlFor="badge">Badge</Label>
               <select id="badge" value={badge} onChange={(event) => setBadge(event.target.value)} className={selectClass}>
@@ -714,6 +729,14 @@ export function ProductForm({
                     </label>
 
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                        <Label>Conditions</Label>
+                        <div className="flex flex-wrap gap-3 rounded-lg border p-3">
+                          {conditions.length === 0 ? <span className="text-sm text-muted-foreground">No conditions configured.</span> : conditions.map((condition) => <label key={condition.id} className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={variant.conditionIds.includes(condition.id)} onChange={() => updateVariant(index, { conditionIds: variant.conditionIds.includes(condition.id) ? variant.conditionIds.filter((id) => id !== condition.id) : [...variant.conditionIds, condition.id] })} className="accent-brand" />{condition.name}
+                          </label>)}
+                        </div>
+                      </div>
                       <div className="space-y-1.5">
                         <Label>SKU</Label>
                         <Input value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} />

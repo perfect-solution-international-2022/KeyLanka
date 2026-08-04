@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const product = await prisma.product.findFirst({
     where: { id: Number(id), deletedAt: null },
-    include: { categories: true, warranties: true, variants: { include: { values: true } } },
+    include: { categories: true, conditions: true, warranties: true, variants: { include: { values: true, conditions: true } } },
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ...product, variants: product.variants.map(toAdminVariant) });
@@ -43,6 +43,7 @@ const updateSchema = z.object({
   categoryId: z.number(),
   categoryIds: z.array(z.number().int().positive()).min(1),
   brandId: z.number().nullable().optional(),
+  conditionIds: z.array(z.number().int().positive()).default([]),
   variants: z.array(variantSchema).optional(),
   warrantyIds: z.array(z.number().int().positive()).default([]),
 });
@@ -115,6 +116,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         categoryId: data.categoryId,
         categories: { set: [...new Set([data.categoryId, ...data.categoryIds])].map((categoryId) => ({ id: categoryId })) },
         brandId: data.brandId ?? null,
+        conditions: { set: data.conditionIds.map((id) => ({ id })) },
         warranties: { set: data.warrantyIds.map((id) => ({ id })) },
       },
     });

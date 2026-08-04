@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const products = await prisma.product.findMany({
     where: { deletedAt: null, ...(search ? { name: { contains: search } } : {}) },
-    include: { category: true, categories: true, brand: true, warranties: true, variants: { include: { values: true } } },
+    include: { category: true, categories: true, brand: true, conditions: true, warranties: true, variants: { include: { values: true, conditions: true } } },
     orderBy: { id: "desc" },
   });
   return NextResponse.json(
@@ -48,6 +48,7 @@ const productSchema = z.object({
   categoryId: z.number(),
   categoryIds: z.array(z.number().int().positive()).min(1),
   brandId: z.number().nullable().optional(),
+  conditionIds: z.array(z.number().int().positive()).default([]),
   variants: z.array(variantSchema).optional(),
   warrantyIds: z.array(z.number().int().positive()).default([]),
 });
@@ -121,6 +122,7 @@ export async function POST(req: NextRequest) {
         categoryId: data.categoryId,
         categories: { connect: [...new Set([data.categoryId, ...data.categoryIds])].map((id) => ({ id })) },
         brandId: data.brandId ?? null,
+        conditions: { connect: data.conditionIds.map((id) => ({ id })) },
         warranties: { connect: data.warrantyIds.map((id) => ({ id })) },
       },
     });

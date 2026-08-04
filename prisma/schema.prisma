@@ -37,6 +37,17 @@ model Brand {
   @@index([deletedAt])
 }
 
+model Condition {
+  id        Int              @id @default(autoincrement())
+  name      String
+  slug      String           @unique
+  products  Product[]
+  variants  ProductVariant[]
+  createdAt DateTime         @default(now())
+
+  @@index([name])
+}
+
 model Product {
   id                Int              @id @default(autoincrement())
   name              String
@@ -69,6 +80,7 @@ model Product {
   categories        Category[]       @relation("ProductCategories")
   brandId           Int?
   brand             Brand?           @relation(fields: [brandId], references: [id])
+  conditions        Condition[]
   cartItems         CartItem[]
   wishlistItems     WishlistItem[]
   orderItems        OrderItem[]
@@ -127,6 +139,7 @@ model ProductVariant {
   heightCm          Decimal?              @db.Decimal(10, 2)
   image             String?
   isDefault         Boolean               @default(false)
+  conditions        Condition[]
   values            ProductVariantValue[]
   cartItems         CartItem[]
   orderItems        OrderItem[]

@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
       minPrice: sp.get("minPrice") ?? undefined,
       maxPrice: sp.get("maxPrice") ?? undefined,
       productType: sp.get("productType") ?? undefined,
+      condition: sp.get("condition") ?? undefined,
       search: sp.get("search") ?? undefined,
       sort: sp.get("sort") ?? undefined,
       page: sp.get("page") ?? undefined,

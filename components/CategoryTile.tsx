@@ -34,6 +34,7 @@ export default function CategoryTile({
             src={image}
             alt={name}
             fill
+            unoptimized
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
             className={`object-cover transition-transform ${locked ? "grayscale opacity-60" : "group-hover:scale-105"}`}
           />

@@ -11,6 +11,8 @@ export interface AdminAttribute {
   values: AdminAttributeValue[];
 }
 
+export interface AdminCondition { id: number; name: string; slug: string; _count?: { products: number; variants: number } }
+
 export interface AdminProductVariant {
   id?: number;
   sku: string;
@@ -27,6 +29,7 @@ export interface AdminProductVariant {
   heightCm: string | null;
   image: string | null;
   isDefault: boolean;
+  conditionIds: number[];
   attributeValueIds: number[];
 }
 
@@ -46,6 +49,7 @@ export interface AdminProductVariantInput {
   heightCm?: number | null;
   image?: string | null;
   isDefault: boolean;
+  conditionIds: number[];
   attributeValueIds: number[];
 }
 
@@ -78,6 +82,7 @@ export interface AdminProduct {
   deletedAt: string | null;
   categoryId: number;
   brandId: number | null;
+  conditions?: AdminCondition[];
   category?: { id: number; name: string };
   categories?: { id: number; name: string }[];
   brand?: { id: number; name: string } | null;
@@ -114,6 +119,7 @@ export interface AdminProductInput {
   categoryId: number;
   categoryIds: number[];
   brandId?: number | null;
+  conditionIds: number[];
   variants?: AdminProductVariantInput[];
   warrantyIds: number[];
 }
@@ -255,6 +261,10 @@ export const adminApi = {
 
   // attributes
   getAttributes: () => request<AdminAttribute[]>("/attributes"),
+  getConditions: () => request<AdminCondition[]>("/conditions"),
+  createCondition: (data: { name: string }) => request<AdminCondition>("/conditions", { method: "POST", body: JSON.stringify(data) }),
+  updateCondition: (id: number, data: { name: string }) => request<AdminCondition>(`/conditions/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteCondition: (id: number) => request(`/conditions/${id}`, { method: "DELETE" }),
   getWarranties: () => request<AdminWarranty[]>("/warranties"),
   createAttribute: (data: { name: string; values: string[] }) =>
     request<AdminAttribute>("/attributes", { method: "POST", body: JSON.stringify(data) }),

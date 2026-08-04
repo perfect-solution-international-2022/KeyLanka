@@ -17,6 +17,7 @@ export const variantSchema = z.object({
   heightCm: z.number().positive().nullable().optional(),
   image: z.string().nullable().optional(),
   isDefault: z.boolean().default(false),
+  conditionIds: z.array(z.number().int().positive()).default([]),
   attributeValueIds: z.array(z.number()).min(1),
 });
 
@@ -38,6 +39,7 @@ type StoredVariant = {
   heightCm: unknown | null;
   image: string | null;
   isDefault: boolean;
+  conditions: { id: number }[];
   values: { attributeValueId: number }[];
 };
 
@@ -59,6 +61,7 @@ export function toAdminVariant(variant: StoredVariant) {
     heightCm: variant.heightCm === null ? null : String(variant.heightCm),
     image: variant.image,
     isDefault: variant.isDefault,
+    conditionIds: variant.conditions.map((condition) => condition.id),
     attributeValueIds: variant.values.map((value) => value.attributeValueId),
   };
 }
@@ -89,6 +92,7 @@ export async function saveVariants(
         heightCm: v.heightCm ?? null,
         image: v.image || null,
         isDefault: v.isDefault,
+        conditions: { connect: v.conditionIds.map((id) => ({ id })) },
         values: { create: v.attributeValueIds.map((attributeValueId) => ({ attributeValueId })) },
       },
     });

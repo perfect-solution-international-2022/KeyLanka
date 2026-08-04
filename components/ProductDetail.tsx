@@ -74,6 +74,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   const isWholesaleActive = hasWholesale && qty >= product.wholesaleMinQty;
   const displayStock = selectedVariant ? selectedVariant.stock : product.stock;
   const displaySku = selectedVariant?.sku ?? product.sku;
+  const displayConditions = selectedVariant?.conditions?.length ? selectedVariant.conditions : (product.conditions ?? []);
   const outOfStockStatus = selectedVariant ? selectedVariant.stockStatus === "out_of_stock" : product.stock === 0;
   const unavailable = (isVariable && !selectedVariant) || (outOfStockStatus && displayStock === 0 && !product.allowBackorder);
 
@@ -190,6 +191,7 @@ export default function ProductDetail({ product }: { product: Product }) {
           <dd className={displayStock > 0 || product.allowBackorder ? "text-green-600" : "text-red-600"}>
             {displayStock > 0 ? `In Stock (${displayStock})` : product.allowBackorder ? "Available on backorder" : "Out of Stock"}
           </dd>
+          {displayConditions.length > 0 && <><dt className="text-gray-400">Conditions</dt><dd className="flex flex-wrap gap-1.5">{displayConditions.map((condition) => <span key={condition.id} className="inline-flex rounded-full border border-brand/20 bg-brand-light px-2.5 py-0.5 font-medium text-brand">{condition.name}</span>)}</dd></>}
         </dl>
 
         {isVariable && attributeGroups.length > 0 && (

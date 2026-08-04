@@ -67,6 +67,7 @@ export interface ProductQueryParams {
   minPrice?: string;
   maxPrice?: string;
   productType?: string;
+  condition?: string;
   search?: string;
   sort?: string;
   page?: string;
@@ -74,7 +75,7 @@ export interface ProductQueryParams {
 }
 
 export async function getProducts(params: ProductQueryParams, options?: { locksmithAuthorized?: boolean }) {
-  const { category, brand, minPrice, maxPrice, productType, search, sort = "popularity", page = "1", limit = "12" } = params;
+  const { category, brand, minPrice, maxPrice, productType, condition, search, sort = "popularity", page = "1", limit = "12" } = params;
 
   const where: Prisma.ProductWhereInput = { deletedAt: null };
 
@@ -90,6 +91,10 @@ export async function getProducts(params: ProductQueryParams, options?: { locksm
 
   if (brand) where.brand = { slug: { in: brand.split(",") } };
   if (productType) where.productType = { in: productType.split(",") };
+  if (condition) {
+    const slugs = condition.split(",");
+    where.AND = [{ OR: [{ conditions: { some: { slug: { in: slugs } } } }, { variants: { some: { conditions: { some: { slug: { in: slugs } } } } } }] }];
+  }
   if (minPrice || maxPrice) {
     where.price = {};
     if (minPrice) where.price.gte = new Prisma.Decimal(minPrice);
@@ -112,7 +117,7 @@ export async function getProducts(params: ProductQueryParams, options?: { locksm
       orderBy,
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
-      include: { category: true, brand: true },
+      include: { category: true, brand: true, conditions: true },
     }),
     prisma.product.count({ where }),
   ]);
@@ -128,7 +133,7 @@ export async function getFeaturedProducts(limit = 8, options?: { locksmithAuthor
     where,
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: { category: true, brand: true },
+      include: { category: true, brand: true, conditions: true },
   });
   return serialize<Product[]>(products);
 }
@@ -139,8 +144,9 @@ export const getProductBySlug = cache(async (slug: string) => {
     include: {
       category: { include: { parent: true } },
       brand: true,
+      conditions: true,
       warranties: { where: { active: true }, orderBy: { days: "asc" } },
-      variants: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
+      variants: { include: { conditions: true, values: { include: { attributeValue: { include: { attribute: true } } } } } },
     },
   });
   return product ? serialize<Product>(product) : null;

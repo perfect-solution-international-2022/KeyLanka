@@ -18,6 +18,7 @@ export interface Brand {
   logo: string | null;
   _count?: { products: number };
 }
+export interface Condition { id: number; name: string; slug: string }
 
 export interface AttributeValue {
   id: number;
@@ -37,6 +38,7 @@ export interface ProductVariant {
   lowStockThreshold: number;
   image: string | null;
   isDefault: boolean;
+  conditions?: Condition[];
   values: { attributeValueId: number; attributeValue?: AttributeValue }[];
 }
 
@@ -71,6 +73,7 @@ export interface Product {
   category?: Category;
   brandId: number | null;
   brand?: Brand | null;
+  conditions?: Condition[];
   variants?: ProductVariant[];
   warranties?: Warranty[];
 }
@@ -187,6 +190,7 @@ export const api = {
   getCategories: () => request<Category[]>("/categories"),
   getCategory: (slug: string) => request<Category>(`/categories/${slug}`),
   getBrands: () => request<Brand[]>("/brands"),
+  getConditions: () => request<Condition[]>("/conditions"),
   getBrand: (slug: string) => request<Brand>(`/brands/${slug}`),
   getProducts: (params: Record<string, string | number | undefined> = {}) => {
     const search = new URLSearchParams();

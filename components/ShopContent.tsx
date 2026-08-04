@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, SlidersHorizontal } from "lucide-react";
-import { api, Category, Brand, Product } from "@/lib/api";
+import { api, Category, Brand, Condition, Product } from "@/lib/api";
 import { useAuth } from "@/app/providers";
 import { isLocksmithAuthorized } from "@/lib/locksmith";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -25,6 +25,7 @@ export default function ShopContent({
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [conditions, setConditions] = useState<Condition[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -35,6 +36,7 @@ export default function ShopContent({
   const search = searchParams.get("search") ?? "";
   const selectedBrands = useMemo(() => (searchParams.get("brand")?.split(",").filter(Boolean) ?? []), [searchParams]);
   const selectedTypes = useMemo(() => (searchParams.get("productType")?.split(",").filter(Boolean) ?? []), [searchParams]);
+  const selectedConditions = useMemo(() => (searchParams.get("condition")?.split(",").filter(Boolean) ?? []), [searchParams]);
   const minPrice = searchParams.get("minPrice") ?? "";
   const maxPrice = searchParams.get("maxPrice") ?? "";
   const sort = searchParams.get("sort") ?? "popularity";
@@ -43,11 +45,12 @@ export default function ShopContent({
   const brandSlug = fixedBrandSlug ?? "";
 
   const activeFilterCount =
-    (categorySlug && !fixedCategorySlug ? 1 : 0) + selectedBrands.length + selectedTypes.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
+    (categorySlug && !fixedCategorySlug ? 1 : 0) + selectedBrands.length + selectedTypes.length + selectedConditions.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => setCategories([]));
     api.getBrands().then(setBrands).catch(() => setBrands([]));
+    api.getConditions().then(setConditions).catch(() => setConditions([]));
   }, []);
 
   useEffect(() => {
@@ -57,6 +60,7 @@ export default function ShopContent({
         category: categorySlug || undefined,
         brand: fixedBrandSlug || selectedBrands.join(",") || undefined,
         productType: selectedTypes.join(",") || undefined,
+        condition: selectedConditions.join(",") || undefined,
         minPrice: minPrice || undefined,
         maxPrice: maxPrice || undefined,
         search: search || undefined,
@@ -75,7 +79,7 @@ export default function ShopContent({
         setTotalPages(1);
       })
       .finally(() => setLoading(false));
-  }, [categorySlug, fixedBrandSlug, selectedBrands, selectedTypes, minPrice, maxPrice, search, sort, page]);
+  }, [categorySlug, fixedBrandSlug, selectedBrands, selectedTypes, selectedConditions, minPrice, maxPrice, search, sort, page]);
 
   function updateParams(mutator: (params: URLSearchParams) => void) {
     const next = new URLSearchParams(searchParams.toString());
@@ -204,6 +208,16 @@ export default function ShopContent({
           ))}
         </ul>
       </div>
+
+      {conditions.length > 0 && <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Condition</h3>
+        <ul className="space-y-1.5 text-sm">
+          {conditions.map((condition) => <li key={condition.id} className="flex items-center gap-2">
+            <input type="checkbox" checked={selectedConditions.includes(condition.slug)} onChange={() => toggleListValue("condition", condition.slug)} className="accent-brand" />
+            <span className="text-gray-700">{condition.name}</span>
+          </li>)}
+        </ul>
+      </div>}
 
       <button onClick={clearFilters} className="text-brand text-sm font-medium hover:underline">
         Clear Filters

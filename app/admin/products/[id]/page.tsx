@@ -15,7 +15,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const [product, categories, brands] = await Promise.all([
     prisma.product.findFirst({
       where: { id: Number(id), deletedAt: null },
-      include: { categories: true, warranties: true, variants: { include: { values: true } } },
+      include: { categories: true, conditions: true, warranties: true, variants: { include: { values: true, conditions: true } } },
     }),
     getCategories(),
     getBrands(),
