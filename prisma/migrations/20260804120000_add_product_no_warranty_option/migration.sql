@@ -1,0 +1,1 @@
+ALTER TABLE `Product` ADD COLUMN `allowNoWarranty` BOOLEAN NOT NULL DEFAULT true;

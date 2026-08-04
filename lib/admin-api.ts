@@ -62,6 +62,7 @@ export interface AdminProduct {
   lowStockThreshold: number;
   allowBackorder: boolean;
   soldIndividually: boolean;
+  allowNoWarranty: boolean;
   rating: string;
   reviewCount: number;
   badge: string | null;
@@ -97,6 +98,7 @@ export interface AdminProductInput {
   lowStockThreshold?: number;
   allowBackorder?: boolean;
   soldIndividually?: boolean;
+  allowNoWarranty?: boolean;
   rating?: number;
   reviewCount?: number;
   badge?: string | null;

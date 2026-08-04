@@ -13,7 +13,9 @@ import { CartIcon, WishlistIcon } from "@/components/commerce-icons";
 export default function ProductDetail({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [busyAction, setBusyAction] = useState<"cart" | "buy" | null>(null);
-  const [selectedWarrantyId, setSelectedWarrantyId] = useState<number | null>(null);
+  const [selectedWarrantyId, setSelectedWarrantyId] = useState<number | null>(() =>
+    product.allowNoWarranty ? null : (product.warranties?.[0]?.id ?? null)
+  );
   const [warrantyConditions, setWarrantyConditions] = useState<string | null>(null);
   const router = useRouter();
   const cart = useCart();
@@ -222,8 +224,8 @@ export default function ProductDetail({ product }: { product: Product }) {
         <div className="mt-5">
           <p className="mb-2 text-sm font-medium text-gray-900">Warranty</p>
           <div className="space-y-2 rounded-lg border border-gray-200 p-3">
-            <label className="flex cursor-pointer items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2"><input type="radio" name="warranty" checked={selectedWarrantyId === null} onChange={() => setSelectedWarrantyId(null)} className="accent-brand"/>No Warranty</span><strong>Free</strong></label>
-            {(product.warranties ?? []).map((w) => <label key={w.id} className="flex cursor-pointer items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2"><input type="radio" name="warranty" checked={selectedWarrantyId === w.id} onChange={() => setSelectedWarrantyId(w.id)} className="accent-brand"/>{w.name} ({w.days} days)</span><strong>+{formatCurrency(w.price)}</strong></label>)}
+            {product.allowNoWarranty && <label className="flex cursor-pointer items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2"><input type="radio" name="warranty" checked={selectedWarrantyId === null} onChange={() => setSelectedWarrantyId(null)} className="accent-brand"/>No Warranty</span><strong>Free</strong></label>}
+            {(product.warranties ?? []).map((w) => <label key={w.id} className="flex cursor-pointer items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2"><input type="radio" name="warranty" checked={selectedWarrantyId === w.id} onChange={() => setSelectedWarrantyId(w.id)} className="accent-brand"/>{w.name} ({w.days} days)</span><strong>{Number(w.price) === 0 ? "Free" : `+${formatCurrency(w.price)}`}</strong></label>)}
           </div>
           {selectedWarranty && <button type="button" onClick={async()=>{ const d=await fetch('/api/policies').then(r=>r.json()); setWarrantyConditions(d.find((p:{key:string})=>p.key==='warranty')?.content ?? ''); }} className="mt-2 text-sm text-brand underline">View Warranty Conditions</button>}
         </div>

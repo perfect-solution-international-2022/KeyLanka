@@ -27,6 +27,7 @@ const updateSchema = z.object({
   lowStockThreshold: z.number().int().min(0).optional(),
   allowBackorder: z.boolean().optional(),
   soldIndividually: z.boolean().optional(),
+  allowNoWarranty: z.boolean().default(true),
   rating: z.number().min(0).max(5).optional(),
   reviewCount: z.number().int().min(0).optional(),
   badge: z.string().nullable().optional(),
@@ -54,6 +55,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   const data = parsed.data;
+  if (!data.allowNoWarranty && data.warrantyIds.length === 0) {
+    return NextResponse.json({ error: "Select at least one warranty option" }, { status: 400 });
+  }
 
   const existingProduct = await prisma.product.findFirst({ where: { id: Number(id), deletedAt: null }, select: { id: true } });
   if (!existingProduct) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -95,6 +99,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         lowStockThreshold: data.lowStockThreshold ?? 10,
         allowBackorder: data.allowBackorder ?? false,
         soldIndividually: data.soldIndividually ?? false,
+        allowNoWarranty: data.allowNoWarranty,
         ...(data.rating !== undefined ? { rating: data.rating } : {}),
         ...(data.reviewCount !== undefined ? { reviewCount: data.reviewCount } : {}),
         badge: data.badge || null,

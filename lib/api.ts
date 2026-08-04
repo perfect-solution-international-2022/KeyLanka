@@ -53,6 +53,7 @@ export interface Product {
   lowStockThreshold: number;
   allowBackorder: boolean;
   soldIndividually: boolean;
+  allowNoWarranty: boolean;
   rating: string;
   reviewCount: number;
   badge: string | null;

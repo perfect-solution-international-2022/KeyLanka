@@ -32,6 +32,7 @@ const productSchema = z.object({
   lowStockThreshold: z.number().int().min(0).optional(),
   allowBackorder: z.boolean().optional(),
   soldIndividually: z.boolean().optional(),
+  allowNoWarranty: z.boolean().default(true),
   rating: z.number().min(0).max(5).optional(),
   reviewCount: z.number().int().min(0).optional(),
   badge: z.string().nullable().optional(),
@@ -66,6 +67,9 @@ export async function POST(req: NextRequest) {
   const parsed = productSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   const data = parsed.data;
+  if (!data.allowNoWarranty && data.warrantyIds.length === 0) {
+    return NextResponse.json({ error: "Select at least one warranty option" }, { status: 400 });
+  }
 
   const existingSku = await prisma.product.findUnique({ where: { sku: data.sku } });
   if (existingSku) return NextResponse.json({ error: "SKU already in use" }, { status: 409 });
@@ -101,6 +105,7 @@ export async function POST(req: NextRequest) {
         lowStockThreshold: data.lowStockThreshold ?? 10,
         allowBackorder: data.allowBackorder ?? false,
         soldIndividually: data.soldIndividually ?? false,
+        allowNoWarranty: data.allowNoWarranty,
         rating: data.rating ?? 0,
         reviewCount: data.reviewCount ?? 0,
         badge: data.badge || null,

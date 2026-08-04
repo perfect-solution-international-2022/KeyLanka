@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (warrantyId && !product.warranties.some((w) => w.id === warrantyId && w.active)) return NextResponse.json({ error: "Warranty is not available for this product" }, { status: 400 });
+  if (!warrantyId && !product.allowNoWarranty) return NextResponse.json({ error: "Select a warranty for this product" }, { status: 400 });
 
   if (product.productType === "Variable Product") {
     if (!variantId) return NextResponse.json({ error: "Select a variation" }, { status: 400 });

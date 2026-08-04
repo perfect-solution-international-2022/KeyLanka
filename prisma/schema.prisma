@@ -50,6 +50,7 @@ model Product {
   lowStockThreshold Int              @default(10)
   allowBackorder    Boolean          @default(false)
   soldIndividually  Boolean          @default(false)
+  allowNoWarranty   Boolean          @default(true)
   rating            Decimal          @default(0) @db.Decimal(2, 1)
   reviewCount       Int              @default(0)
   badge             String?

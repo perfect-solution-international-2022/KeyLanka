@@ -135,6 +135,7 @@ export function ProductForm({
   const [variants, setVariants] = useState<AdminProductVariant[]>(product?.variants ?? []);
   const [warranties, setWarranties] = useState<AdminWarranty[]>([]);
   const [warrantyIds, setWarrantyIds] = useState<number[]>(product?.warranties?.map((w) => w.id) ?? []);
+  const [allowNoWarranty, setAllowNoWarranty] = useState(product?.allowNoWarranty ?? true);
 
   useEffect(() => {
     adminApi.getAttributes().then((data) => {
@@ -307,6 +308,11 @@ export function ProductForm({
         return;
       }
     }
+    if (!allowNoWarranty && warrantyIds.length === 0) {
+      setActiveTab("general");
+      setError("Select at least one warranty option.");
+      return;
+    }
 
     setLoading(true);
     const payload: AdminProductInput = {
@@ -321,6 +327,7 @@ export function ProductForm({
       lowStockThreshold: Number(lowStockThreshold),
       allowBackorder,
       soldIndividually,
+      allowNoWarranty,
       badge: badge || null,
       featured,
       shortDescription,
@@ -509,9 +516,10 @@ export function ProductForm({
           >
             <div className="space-y-2 md:col-span-2">
               <Label>Available Warranties</Label>
-              <p className="text-xs text-muted-foreground">No Warranty is automatically available. Select any additional warranties for this product.</p>
+              <p className="text-xs text-muted-foreground">Select every warranty choice available for this product.</p>
               <div className="flex flex-wrap gap-3 rounded-lg border p-3">
-                {warranties.length === 0 ? <span className="text-sm text-muted-foreground">No warranty types configured.</span> : warranties.map((w) => <label key={w.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={warrantyIds.includes(w.id)} onChange={() => setWarrantyIds((ids) => ids.includes(w.id) ? ids.filter((id) => id !== w.id) : [...ids, w.id])} className="accent-brand" />{w.name} ({w.days} days, Rs. {Number(w.price).toLocaleString()})</label>)}
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={allowNoWarranty} onChange={(e) => setAllowNoWarranty(e.target.checked)} className="accent-brand" />No Warranty (Free)</label>
+                {warranties.length === 0 ? <span className="text-sm text-muted-foreground">No additional warranty types configured.</span> : warranties.map((w) => <label key={w.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={warrantyIds.includes(w.id)} onChange={() => setWarrantyIds((ids) => ids.includes(w.id) ? ids.filter((id) => id !== w.id) : [...ids, w.id])} className="accent-brand" />{w.name} ({w.days} days, {Number(w.price) === 0 ? "Free" : `Rs. ${Number(w.price).toLocaleString()}`})</label>)}
               </div>
             </div>
             <div className="space-y-1.5">
