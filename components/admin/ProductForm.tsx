@@ -79,6 +79,14 @@ function slugify(value: string) {
 const selectClass =
   "w-full h-10 border border-input rounded-lg px-3 text-sm bg-background outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
 
+function includeParentCategories(categoryIds: number[], categories: AdminCategory[]) {
+  const selected = new Set(categoryIds);
+  for (const parent of categories) {
+    if (parent.children?.some((child) => selected.has(child.id))) selected.add(parent.id);
+  }
+  return [...selected];
+}
+
 export function ProductForm({
   product,
   categories,
@@ -112,14 +120,14 @@ export function ProductForm({
   const [productType, setProductType] = useState(
     product?.productType === "Variable Product" ? "Variable Product" : "Single Product"
   );
-  const [categoryIds, setCategoryIds] = useState<number[]>(
-    product?.categories?.length
+  const [categoryIds, setCategoryIds] = useState<number[]>(() =>
+    includeParentCategories(product?.categories?.length
       ? product.categories.map((category) => category.id)
       : product?.categoryId
         ? [product.categoryId]
         : categories[0]?.id
           ? [categories[0].id]
-          : []
+          : [], categories)
   );
   const [brandId, setBrandId] = useState(product?.brandId ? String(product.brandId) : "");
   const [conditionIds, setConditionIds] = useState<number[]>(product?.conditions?.map((condition) => condition.id) ?? []);
@@ -194,9 +202,23 @@ export function ProductForm({
   }
 
   function toggleCategory(categoryId: number) {
-    setCategoryIds((current) =>
-      current.includes(categoryId) ? current.filter((id) => id !== categoryId) : [...current, categoryId]
-    );
+    setCategoryIds((current) => {
+      const selected = new Set(current);
+      const category = flatCategories.find((item) => item.id === categoryId);
+      if (!category) return current;
+
+      if (selected.has(categoryId)) {
+        selected.delete(categoryId);
+        if (!category.parentId) {
+          for (const child of category.children ?? []) selected.delete(child.id);
+        }
+      } else {
+        selected.add(categoryId);
+        if (category.parentId) selected.add(category.parentId);
+      }
+
+      return [...selected];
+    });
   }
 
   function generateVariations() {

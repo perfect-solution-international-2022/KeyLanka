@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/app/providers";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -16,9 +17,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!auth) redirect("/account/login?redirect=/admin/dashboard");
   if (auth.role !== "ADMIN" && auth.role !== "PRODUCT_MANAGER") redirect("/");
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <TooltipProvider>{children}</TooltipProvider>
-      <Toaster position="top-center" richColors />
-    </ThemeProvider>
+    <Providers>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <TooltipProvider>{children}</TooltipProvider>
+        <Toaster position="top-center" richColors />
+      </ThemeProvider>
+    </Providers>
   );
 }

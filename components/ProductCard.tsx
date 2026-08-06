@@ -17,14 +17,16 @@ function Stars({ rating }: { rating: string }) {
   );
 }
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product, layout = "grid" }: { product: Product; layout?: "grid" | "list" }) {
   const cart = useCart();
   const wishlist = useWishlist();
   const wishlisted = wishlist.isWishlisted(product.id);
 
   return (
-    <div className="motion-card group flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white hover:shadow-lg">
-      <div className="relative bg-gray-50 aspect-square">
+    <div className={`motion-card group overflow-hidden rounded-lg border border-gray-200 bg-white hover:border-gray-300 hover:shadow-md ${
+      layout === "list" ? "grid min-h-40 grid-cols-[128px_minmax(0,1fr)] sm:grid-cols-[190px_minmax(0,1fr)]" : "flex flex-col"
+    }`}>
+      <div className={`relative bg-gray-50 ${layout === "list" ? "h-full min-h-40" : "aspect-square"}`}>
         {product.badge && (
           <span
             className={`absolute top-2 left-2 z-10 text-[11px] font-semibold px-2 py-0.5 rounded ${
@@ -51,13 +53,18 @@ export default function ProductCard({ product }: { product: Product }) {
             src={product.images?.[0] ?? "/products/placeholder-1.svg"}
             alt={product.name}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
-            className="object-contain p-6 group-hover:scale-105 transition-transform"
+            sizes={layout === "list" ? "(max-width: 640px) 128px, 190px" : "(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"}
+            className={`object-contain group-hover:scale-105 transition-transform ${layout === "list" ? "p-3 sm:p-5" : "p-6"}`}
           />
         </Link>
       </div>
-      <div className="p-3 flex flex-col gap-1 flex-1">
-        <Link href={`/product/${product.slug}`} className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-brand">
+      <div className={`flex min-w-0 flex-col ${layout === "list" ? "gap-1.5 p-3 sm:p-5" : "flex-1 gap-1 p-3"}`}>
+        {layout === "list" && (
+          <div className="text-[11px] font-medium uppercase text-gray-500">
+            {[product.category?.name, product.brand?.name].filter(Boolean).join(" · ")}
+          </div>
+        )}
+        <Link href={`/product/${product.slug}`} className={`${layout === "list" ? "text-base sm:text-lg" : "text-sm"} font-semibold text-gray-900 line-clamp-2 hover:text-brand`}>
           {product.name}
         </Link>
         <div className="flex items-center gap-1">
@@ -75,10 +82,15 @@ export default function ProductCard({ product }: { product: Product }) {
             Wholesale from {formatCurrency(product.wholesalePrice)}
           </span>
         )}
+        {layout === "list" && product.shortDescription && (
+          <p className="hidden text-sm leading-6 text-gray-500 sm:line-clamp-2">{product.shortDescription}</p>
+        )}
         <button
           onClick={() => cart.addToCart(product.id, 1)}
           disabled={product.stock === 0}
-          className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand py-2 pt-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:bg-gray-300"
+          className={`mt-auto inline-flex items-center justify-center gap-2 rounded-md bg-brand text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:bg-gray-300 ${
+            layout === "list" ? "w-full px-4 py-2 sm:w-fit" : "w-full py-2"
+          }`}
         >
           {product.stock === 0 ? (
             "Out of Stock"

@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, Lock, SlidersHorizontal } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronRight, Grid2X2, List, Lock, SlidersHorizontal, X } from "lucide-react";
 import { api, Category, Brand, Condition, Product } from "@/lib/api";
 import { useAuth } from "@/app/providers";
 import { isLocksmithAuthorized } from "@/lib/locksmith";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ProductCard from "./ProductCard";
 
 export default function ShopContent({
@@ -17,6 +16,7 @@ export default function ShopContent({
   fixedBrandSlug?: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const auth = useAuth();
   const authorized = isLocksmithAuthorized(auth.user);
@@ -46,7 +46,10 @@ export default function ShopContent({
     (categorySlug && !fixedCategorySlug ? 1 : 0) + selectedBrands.length + selectedConditions.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   useEffect(() => {
-    api.getCategories().then(setCategories).catch(() => setCategories([]));
+    api.getCategories().then((items) => {
+      setCategories(items);
+      setExpandedCategories(new Set(items.filter((category) => category.children?.length).map((category) => category.id)));
+    }).catch(() => setCategories([]));
     api.getBrands().then(setBrands).catch(() => setBrands([]));
     api.getConditions().then(setConditions).catch(() => setConditions([]));
   }, []);
@@ -82,7 +85,8 @@ export default function ShopContent({
     const next = new URLSearchParams(searchParams.toString());
     mutator(next);
     next.delete("page");
-    router.push(`?${next.toString()}`);
+    const query = next.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   }
 
   function toggleListValue(key: string, value: string) {
@@ -99,7 +103,7 @@ export default function ShopContent({
   function goToPage(p: number) {
     const next = new URLSearchParams(searchParams.toString());
     next.set("page", String(p));
-    router.push(`?${next.toString()}`);
+    router.push(`${pathname}?${next.toString()}`);
   }
 
   function selectCategory(slug: string) {
@@ -118,7 +122,8 @@ export default function ShopContent({
   }
 
   function clearFilters() {
-    router.push(fixedCategorySlug ? "" : "/shop");
+    setFiltersOpen(false);
+    router.replace(pathname);
   }
 
   const from = total === 0 ? 0 : (page - 1) * 12 + 1;
@@ -132,7 +137,8 @@ export default function ShopContent({
           {categories.map((c) => {
             const locked = c.restricted && !authorized;
             const hasChildren = Boolean(c.children?.length);
-            const expanded = expandedCategories.has(c.id) || Boolean(c.children?.some((child) => child.slug === categorySlug));
+            const containsSelectedCategory = c.slug === categorySlug || Boolean(c.children?.some((child) => child.slug === categorySlug));
+            const expanded = expandedCategories.has(c.id);
             return (
               <li key={c.id}>
                 {locked ? (
@@ -145,31 +151,43 @@ export default function ShopContent({
                     </span>
                   </span>
                 ) : (
-                  <div className="flex items-center gap-1">
+                  hasChildren ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleCategoryExpanded(c.id)}
+                      aria-expanded={expanded}
+                      className={`flex w-full items-center justify-between rounded-md px-2 py-2 text-left transition-colors hover:bg-gray-100 hover:text-brand ${
+                        containsSelectedCategory ? "bg-brand-light text-brand font-medium" : "text-gray-700"
+                      }`}
+                    >
+                      <span>{c.name}</span>
+                      <ChevronRight size={16} className={`shrink-0 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
+                    </button>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => selectCategory(c.slug)}
-                      className={`min-w-0 flex-1 rounded px-1 py-1 text-left hover:text-brand ${
-                        categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
+                      className={`w-full rounded-md px-2 py-2 text-left transition-colors hover:bg-gray-100 hover:text-brand ${
+                        categorySlug === c.slug ? "bg-brand-light text-brand font-medium" : "text-gray-700"
                       }`}
                     >
                       {c.name}
                     </button>
-                    {hasChildren && (
-                      <button
-                        type="button"
-                        onClick={() => toggleCategoryExpanded(c.id)}
-                        aria-label={`${expanded ? "Collapse" : "Expand"} ${c.name}`}
-                        aria-expanded={expanded}
-                        className="flex size-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-brand"
-                      >
-                        <ChevronRight size={15} className={`transition-transform ${expanded ? "rotate-90" : ""}`} />
-                      </button>
-                    )}
-                  </div>
+                  )
                 )}
                 {!locked && hasChildren && expanded && (
-                  <ul className="mt-1 space-y-1 border-l border-gray-200 pl-3 ml-2">
+                  <ul className="mt-1 mb-2 space-y-0.5 border-l-2 border-brand/20 pl-3 ml-3">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => selectCategory(c.slug)}
+                        className={`w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-100 hover:text-brand ${
+                          categorySlug === c.slug ? "bg-brand-light text-brand font-medium" : "text-gray-500"
+                        }`}
+                      >
+                        All {c.name}
+                      </button>
+                    </li>
                     {c.children?.map((child) => {
                       const childLocked = child.restricted && !authorized;
                       return (
@@ -185,8 +203,8 @@ export default function ShopContent({
                             <button
                               type="button"
                               onClick={() => selectCategory(child.slug)}
-                              className={`w-full rounded px-1 py-1 text-left hover:text-brand ${
-                                categorySlug === child.slug ? "text-brand font-medium" : "text-gray-600"
+                              className={`w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-100 hover:text-brand ${
+                                categorySlug === child.slug ? "bg-brand-light text-brand font-medium" : "text-gray-600"
                               }`}
                             >
                               {child.name}
@@ -255,7 +273,7 @@ export default function ShopContent({
         </ul>
       </div>}
 
-      <button onClick={clearFilters} className="text-brand text-sm font-medium hover:underline">
+      <button type="button" onClick={clearFilters} className="text-brand text-sm font-medium hover:underline">
         Clear Filters
       </button>
     </div>
@@ -265,18 +283,35 @@ export default function ShopContent({
     <div className="container-page py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 min-w-0">
       <aside className="hidden md:block">{filtersPanel}</aside>
 
-      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="left" className="light w-[85vw] sm:max-w-sm overflow-y-auto bg-background text-foreground">
-          <SheetHeader className="border-b border-gray-100">
-            <SheetTitle>Filters</SheetTitle>
-          </SheetHeader>
-          <div className="p-4">{filtersPanel}</div>
-        </SheetContent>
-      </Sheet>
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[100] md:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-filters-title">
+          <button
+            type="button"
+            aria-label="Close filters"
+            onClick={() => setFiltersOpen(false)}
+            className="absolute inset-0 bg-black/35 backdrop-blur-[1px]"
+          />
+          <aside className="absolute inset-y-0 left-0 flex w-[88vw] max-w-sm flex-col bg-white text-gray-900 shadow-2xl">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
+              <h2 id="mobile-filters-title" className="font-semibold">Filters</h2>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                aria-label="Close filters"
+                className="flex size-9 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              >
+                <X size={19} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain">{filtersPanel}</div>
+          </aside>
+        </div>
+      )}
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4 text-sm text-gray-600">
           <button
+            type="button"
             onClick={() => setFiltersOpen(true)}
             className="md:hidden inline-flex items-center gap-1.5 border border-gray-300 rounded-md px-3 py-1.5 text-gray-700 hover:border-brand hover:text-brand"
           >
@@ -303,12 +338,24 @@ export default function ShopContent({
               <option value="rating">Rating</option>
               <option value="newest">Newest</option>
             </select>
-            <div className="flex border border-gray-300 rounded overflow-hidden">
-              <button onClick={() => setView("grid")} className={`px-2 py-1.5 text-xs ${view === "grid" ? "bg-brand text-white" : "bg-white"}`}>
-                Grid
+            <div className="flex overflow-hidden rounded-md border border-gray-300 bg-white">
+              <button
+                type="button"
+                onClick={() => setView("grid")}
+                aria-label="Grid view"
+                title="Grid view"
+                className={`flex size-8 items-center justify-center ${view === "grid" ? "bg-brand text-white" : "text-gray-500 hover:bg-gray-100"}`}
+              >
+                <Grid2X2 size={15} />
               </button>
-              <button onClick={() => setView("list")} className={`px-2 py-1.5 text-xs ${view === "list" ? "bg-brand text-white" : "bg-white"}`}>
-                List
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                aria-label="List view"
+                title="List view"
+                className={`flex size-8 items-center justify-center border-l border-gray-300 ${view === "list" ? "bg-brand text-white" : "text-gray-500 hover:bg-gray-100"}`}
+              >
+                <List size={16} />
               </button>
             </div>
           </div>
@@ -325,7 +372,7 @@ export default function ShopContent({
         ) : (
           <div className={view === "grid" ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4" : "flex flex-col gap-4"}>
             {products.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.id} product={p} layout={view} />
             ))}
           </div>
         )}

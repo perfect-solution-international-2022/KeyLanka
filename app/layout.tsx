@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
 import "./globals.css";
 import { DEFAULT_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/seo";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
@@ -46,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <link rel="preload" as="image" href="/hero-mobile.webp" type="image/webp" media="(max-width: 767px)" fetchPriority="high" />
         <link rel="preload" as="image" href="/hero-desktop.webp" type="image/webp" media="(min-width: 768px)" fetchPriority="high" />
