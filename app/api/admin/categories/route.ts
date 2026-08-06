@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireAdmin, requireCatalogManager } from "@/lib/auth-server";
 
 function slugify(s: string) {
   return s
@@ -12,7 +12,7 @@ function slugify(s: string) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireCatalogManager(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const categories = await prisma.category.findMany({
     where: { deletedAt: null },
     include: { children: { where: { deletedAt: null } }, _count: { select: { products: { where: { deletedAt: null } } } } },

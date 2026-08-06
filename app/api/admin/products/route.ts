@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireCatalogManager } from "@/lib/auth-server";
 import { variantSchema, saveVariants, toAdminVariant } from "@/lib/product-variants";
 
 export async function GET(req: NextRequest) {
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireCatalogManager(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const sp = req.nextUrl.searchParams;
   const search = sp.get("search") ?? undefined;
@@ -62,7 +62,7 @@ function slugify(s: string) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireCatalogManager(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = productSchema.safeParse(body);

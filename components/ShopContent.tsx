@@ -2,14 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Lock, SlidersHorizontal } from "lucide-react";
 import { api, Category, Brand, Condition, Product } from "@/lib/api";
 import { useAuth } from "@/app/providers";
 import { isLocksmithAuthorized } from "@/lib/locksmith";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ProductCard from "./ProductCard";
-
-const PRODUCT_TYPES = ["Smart Keys", "Remote Keys", "Key Shells", "Key Blanks", "Transponders"];
 
 export default function ShopContent({
   fixedCategorySlug,
@@ -32,10 +30,10 @@ export default function ShopContent({
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
 
   const search = searchParams.get("search") ?? "";
   const selectedBrands = useMemo(() => (searchParams.get("brand")?.split(",").filter(Boolean) ?? []), [searchParams]);
-  const selectedTypes = useMemo(() => (searchParams.get("productType")?.split(",").filter(Boolean) ?? []), [searchParams]);
   const selectedConditions = useMemo(() => (searchParams.get("condition")?.split(",").filter(Boolean) ?? []), [searchParams]);
   const minPrice = searchParams.get("minPrice") ?? "";
   const maxPrice = searchParams.get("maxPrice") ?? "";
@@ -45,7 +43,7 @@ export default function ShopContent({
   const brandSlug = fixedBrandSlug ?? "";
 
   const activeFilterCount =
-    (categorySlug && !fixedCategorySlug ? 1 : 0) + selectedBrands.length + selectedTypes.length + selectedConditions.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
+    (categorySlug && !fixedCategorySlug ? 1 : 0) + selectedBrands.length + selectedConditions.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => setCategories([]));
@@ -59,7 +57,6 @@ export default function ShopContent({
       .getProducts({
         category: categorySlug || undefined,
         brand: fixedBrandSlug || selectedBrands.join(",") || undefined,
-        productType: selectedTypes.join(",") || undefined,
         condition: selectedConditions.join(",") || undefined,
         minPrice: minPrice || undefined,
         maxPrice: maxPrice || undefined,
@@ -79,7 +76,7 @@ export default function ShopContent({
         setTotalPages(1);
       })
       .finally(() => setLoading(false));
-  }, [categorySlug, fixedBrandSlug, selectedBrands, selectedTypes, selectedConditions, minPrice, maxPrice, search, sort, page]);
+  }, [categorySlug, fixedBrandSlug, selectedBrands, selectedConditions, minPrice, maxPrice, search, sort, page]);
 
   function updateParams(mutator: (params: URLSearchParams) => void) {
     const next = new URLSearchParams(searchParams.toString());
@@ -105,6 +102,21 @@ export default function ShopContent({
     router.push(`?${next.toString()}`);
   }
 
+  function selectCategory(slug: string) {
+    setFiltersOpen(false);
+    if (fixedCategorySlug) router.push(`/category/${slug}`);
+    else updateParams((params) => (categorySlug === slug ? params.delete("category") : params.set("category", slug)));
+  }
+
+  function toggleCategoryExpanded(id: number) {
+    setExpandedCategories((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function clearFilters() {
     router.push(fixedCategorySlug ? "" : "/shop");
   }
@@ -119,6 +131,8 @@ export default function ShopContent({
         <ul className="space-y-1 text-sm">
           {categories.map((c) => {
             const locked = c.restricted && !authorized;
+            const hasChildren = Boolean(c.children?.length);
+            const expanded = expandedCategories.has(c.id) || Boolean(c.children?.some((child) => child.slug === categorySlug));
             return (
               <li key={c.id}>
                 {locked ? (
@@ -131,18 +145,57 @@ export default function ShopContent({
                     </span>
                   </span>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setFiltersOpen(false);
-                      if (fixedCategorySlug) router.push(`/category/${c.slug}`);
-                      else updateParams((p) => (categorySlug === c.slug ? p.delete("category") : p.set("category", c.slug)));
-                    }}
-                    className={`flex items-center justify-between w-full text-left px-1 py-1 rounded hover:text-brand ${
-                      categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
-                    }`}
-                  >
-                    {c.name} <span className="text-gray-300">›</span>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => selectCategory(c.slug)}
+                      className={`min-w-0 flex-1 rounded px-1 py-1 text-left hover:text-brand ${
+                        categorySlug === c.slug ? "text-brand font-medium" : "text-gray-700"
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                    {hasChildren && (
+                      <button
+                        type="button"
+                        onClick={() => toggleCategoryExpanded(c.id)}
+                        aria-label={`${expanded ? "Collapse" : "Expand"} ${c.name}`}
+                        aria-expanded={expanded}
+                        className="flex size-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-brand"
+                      >
+                        <ChevronRight size={15} className={`transition-transform ${expanded ? "rotate-90" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {!locked && hasChildren && expanded && (
+                  <ul className="mt-1 space-y-1 border-l border-gray-200 pl-3 ml-2">
+                    {c.children?.map((child) => {
+                      const childLocked = child.restricted && !authorized;
+                      return (
+                        <li key={child.id}>
+                          {childLocked ? (
+                            <span
+                              className="flex items-center gap-1.5 rounded px-1 py-1 text-gray-300 cursor-not-allowed"
+                              title="Restricted to approved Locksmith Merchants"
+                            >
+                              <Lock size={11} /> {child.name}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => selectCategory(child.slug)}
+                              className={`w-full rounded px-1 py-1 text-left hover:text-brand ${
+                                categorySlug === child.slug ? "text-brand font-medium" : "text-gray-600"
+                              }`}
+                            >
+                              {child.name}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </li>
             );
@@ -191,23 +244,6 @@ export default function ShopContent({
           </ul>
         </div>
       )}
-
-      <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Product Type</h3>
-        <ul className="space-y-1.5 text-sm">
-          {PRODUCT_TYPES.map((t) => (
-            <li key={t} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(t)}
-                onChange={() => toggleListValue("productType", t)}
-                className="accent-brand"
-              />
-              <span className="text-gray-700">{t}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
 
       {conditions.length > 0 && <div>
         <h3 className="font-semibold text-gray-900 mb-3">Condition</h3>

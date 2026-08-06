@@ -14,7 +14,7 @@ interface FormState {
   password: string;
   confirmPassword: string;
   phone: string;
-  role: "BUYER" | "ADMIN";
+  role: "BUYER" | "ADMIN" | "PRODUCT_MANAGER";
 }
 
 const EMPTY_FORM: FormState = { name: "", email: "", password: "", confirmPassword: "", phone: "", role: "BUYER" };
@@ -26,7 +26,7 @@ export function AccountsManager() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const admins = users.filter((u) => u.role === "ADMIN");
+  const staff = users.filter((u) => u.role === "ADMIN" || u.role === "PRODUCT_MANAGER");
 
   async function refresh() {
     setLoading(true);
@@ -114,11 +114,12 @@ export function AccountsManager() {
           <select
             id="acc-role"
             value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as "BUYER" | "ADMIN" }))}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as FormState["role"] }))}
             className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-transparent h-9"
           >
             <option value="BUYER">Buyer</option>
             <option value="ADMIN">Admin</option>
+            <option value="PRODUCT_MANAGER">Product Manager</option>
           </select>
         </div>
         <button
@@ -132,10 +133,10 @@ export function AccountsManager() {
       <div className="space-y-3">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
-        ) : admins.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No admin accounts yet.</p>
+        ) : staff.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No staff accounts yet.</p>
         ) : (
-          admins.map((u) => (
+          staff.map((u) => (
             <div key={u.id} className="border rounded-lg p-4 bg-card flex items-center justify-between gap-4">
               <div className="min-w-0 flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0">
@@ -147,7 +148,7 @@ export function AccountsManager() {
                 </div>
               </div>
               <Badge variant="default" className="shrink-0">
-                Admin
+                {u.role === "ADMIN" ? "Admin" : "Product Manager"}
               </Badge>
             </div>
           ))

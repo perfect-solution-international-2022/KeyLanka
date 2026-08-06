@@ -7,6 +7,7 @@ import Image from "next/image"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { useAuth } from "@/app/providers"
 import {
   Sidebar,
   SidebarContent,
@@ -39,11 +40,6 @@ import {
 } from "lucide-react"
 
 const data = {
-  user: {
-    name: "Admin",
-    email: "info@keylanka.lk",
-    avatar: "",
-  },
   navSecondary: [
     { title: "Bank Transfer", url: "/admin/bank-transfer", icon: <LandmarkIcon /> },
     { title: "Warranty & Policies", url: "/admin/warranty", icon: <ShieldPlusIcon /> },
@@ -54,9 +50,12 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const auth = useAuth()
+  const isAdmin = auth.user?.role === "ADMIN"
   const [badgeCounts, setBadgeCounts] = React.useState({ pendingOrders: 0, pendingLocksmith: 0 })
 
   React.useEffect(() => {
+    if (!isAdmin) return
     let cancelled = false
     function load() {
       fetch("/api/admin/badge-counts")
@@ -72,9 +71,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       cancelled = true
       clearInterval(interval)
     }
-  }, [])
+  }, [isAdmin])
 
-  const navMain = [
+  const adminNavMain = [
     { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
     { title: "Products", url: "/admin/products", icon: <PackageIcon /> },
     { title: "Categories", url: "/admin/categories", icon: <FolderTreeIcon /> },
@@ -90,6 +89,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Reports", url: "/admin/reports", icon: <BarChart3Icon /> },
     { title: "Security Activity", url: "/admin/security", icon: <ShieldCheckIcon /> },
   ]
+  const navMain = isAdmin
+    ? adminNavMain
+    : [{ title: "Products", url: "/admin/products", icon: <PackageIcon /> }]
+  const navSecondary = isAdmin
+    ? data.navSecondary
+    : [{ title: "View Store", url: "/", icon: <StoreIcon /> }]
+  const sidebarUser = {
+    name: auth.user?.name ?? "Staff",
+    email: auth.user?.email ?? "",
+    avatar: "",
+  }
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -98,7 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<Link href="/admin/dashboard" />}
+              render={<Link href={isAdmin ? "/admin/dashboard" : "/admin/products"} />}
             >
               <Image src="/logo-icon.png" alt="Key Lanka" width={24} height={24} className="h-6 w-6 object-contain shrink-0" />
               <span className="text-base font-semibold">Key Lanka Admin</span>
@@ -108,10 +118,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={sidebarUser} />
       </SidebarFooter>
     </Sidebar>
   )

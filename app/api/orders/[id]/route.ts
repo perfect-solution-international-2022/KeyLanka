@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/auth-server";
+import { formatVariantLabel } from "@/lib/variant-label";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getUserId(req);
@@ -9,8 +10,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const order = await prisma.order.findFirst({
     where: { id: Number(id), userId, deletedAt: null },
-    include: { items: true },
+    include: {
+      items: {
+        include: { variant: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } } },
+      },
+    },
   });
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-  return NextResponse.json(order);
+  return NextResponse.json({
+    ...order,
+    items: order.items.map((item) => ({
+      ...item,
+      variantDetails: item.variantDetails ?? formatVariantLabel(item.variant?.values),
+      variant: undefined,
+    })),
+  });
 }

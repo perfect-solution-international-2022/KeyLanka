@@ -77,6 +77,7 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
               <div key={item.id} className="flex items-center justify-between px-4 py-3 text-sm">
                 <div>
                   <div className="font-medium">{item.name}</div>
+                  {item.variantDetails && <div className="mt-0.5 text-xs font-medium text-brand">{item.variantDetails}</div>}
                   <div className="text-muted-foreground text-xs">
                     {item.sku ? `SKU ${item.sku} · ` : ""}Qty {item.quantity}
                   </div>

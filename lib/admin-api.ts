@@ -169,7 +169,7 @@ export interface AdminOrder {
   deletedAt: string | null;
   user: { id: number; name: string; email: string };
   policyAgreement?: { accepted: boolean; acceptedAt: string; policies: { key: string; title: string; content: string; version: number }[] } | null;
-  items: { id: number; name: string; sku: string | null; price: string; quantity: number; productId: number; variantId: number | null; warrantyName: string | null; warrantyDays: number | null; warrantyPrice: string }[];
+  items: { id: number; name: string; sku: string | null; variantDetails: string | null; price: string; quantity: number; productId: number; variantId: number | null; warrantyName: string | null; warrantyDays: number | null; warrantyPrice: string }[];
 }
 
 export interface AdminCustomer {
@@ -177,7 +177,7 @@ export interface AdminCustomer {
   name: string;
   email: string;
   phone: string | null;
-  role: "BUYER" | "ADMIN";
+  role: "BUYER" | "ADMIN" | "PRODUCT_MANAGER";
   createdAt: string;
   orderCount: number;
   totalSpent: string;
@@ -190,7 +190,7 @@ export interface AdminUser {
   name: string;
   email: string;
   phone: string | null;
-  role: "BUYER" | "ADMIN";
+  role: "BUYER" | "ADMIN" | "PRODUCT_MANAGER";
   createdAt: string;
 }
 
@@ -199,7 +199,7 @@ export interface AdminUserInput {
   email: string;
   password: string;
   phone?: string;
-  role: "BUYER" | "ADMIN";
+  role: "BUYER" | "ADMIN" | "PRODUCT_MANAGER";
 }
 
 export interface AdminLocksmithApplication {

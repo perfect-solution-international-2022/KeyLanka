@@ -7,6 +7,7 @@ import { InsufficientStockError, releaseStock, reserveStock } from "@/lib/invent
 import { getUnitPrice, resolvePriceSource } from "@/lib/pricing";
 import { getShippingCost } from "@/lib/queries";
 import { createPolicyAgreementSnapshot } from "@/lib/policy-agreement";
+import { formatVariantLabel } from "@/lib/variant-label";
 
 const schema = z.object({
   shippingName: z.string().min(1),
@@ -29,7 +30,14 @@ export async function POST(req: NextRequest) {
 
   const [user, cartItems] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
-    prisma.cartItem.findMany({ where: { userId }, include: { product: true, variant: true, warranty: true } }),
+    prisma.cartItem.findMany({
+      where: { userId },
+      include: {
+        product: true,
+        variant: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
+        warranty: true,
+      },
+    }),
   ]);
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -93,6 +101,7 @@ export async function POST(req: NextRequest) {
               variantId: ci.variantId,
               name: ci.product.name,
               sku: ci.variant?.sku ?? ci.product.sku,
+              variantDetails: formatVariantLabel(ci.variant?.values),
               price: unitPrices[i],
               quantity: ci.quantity,
               warrantyName: ci.warranty?.name ?? "No Warranty",

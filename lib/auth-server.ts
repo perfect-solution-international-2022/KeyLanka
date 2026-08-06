@@ -14,7 +14,7 @@ const JWT_SECRET: string = (() => {
 const COOKIE_NAME = "token";
 const MAX_AGE = 30 * 24 * 60 * 60; // 30 days, in seconds
 
-export type Role = "BUYER" | "ADMIN";
+export type Role = "BUYER" | "ADMIN" | "PRODUCT_MANAGER";
 
 export interface TokenPayload {
   userId: number;
@@ -58,6 +58,11 @@ export async function getUserId(req: NextRequest): Promise<number | null> {
 export async function requireAdmin(req: NextRequest): Promise<TokenPayload | null> {
   const auth = await verifyAuth(req);
   return auth?.role === "ADMIN" ? auth : null;
+}
+
+export async function requireCatalogManager(req: NextRequest): Promise<TokenPayload | null> {
+  const auth = await verifyAuth(req);
+  return auth && (auth.role === "ADMIN" || auth.role === "PRODUCT_MANAGER") ? auth : null;
 }
 
 // For use in Server Components, which don't have a NextRequest — reads the

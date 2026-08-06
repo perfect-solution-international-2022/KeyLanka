@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireAdmin, requireCatalogManager } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await requireCatalogManager(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   return NextResponse.json(await prisma.warranty.findMany({ orderBy: { days: "asc" } }));
 }
 export async function POST(req: NextRequest) {

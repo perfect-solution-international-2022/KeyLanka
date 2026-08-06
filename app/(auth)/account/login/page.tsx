@@ -30,6 +30,8 @@ function LoginForm() {
       const redirect = searchParams.get("redirect");
       if (user.role === "ADMIN") {
         router.push(redirect && redirect.startsWith("/admin") ? redirect : "/admin/dashboard");
+      } else if (user.role === "PRODUCT_MANAGER") {
+        router.push("/admin/products");
       } else {
         router.push(redirect ?? "/account");
       }

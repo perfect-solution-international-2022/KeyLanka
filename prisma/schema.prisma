@@ -162,6 +162,7 @@ model ProductVariantValue {
 enum Role {
   BUYER
   ADMIN
+  PRODUCT_MANAGER
 }
 
 model User {
@@ -373,6 +374,7 @@ model OrderItem {
   variant       ProductVariant? @relation(fields: [variantId], references: [id])
   name          String
   sku           String?
+  variantDetails String?         @db.VarChar(500)
   price         Decimal         @db.Decimal(10, 2)
   quantity      Int
   warrantyName  String?

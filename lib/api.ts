@@ -128,7 +128,7 @@ export interface WishlistItem {
   product: Product;
 }
 
-export type Role = "BUYER" | "ADMIN";
+export type Role = "BUYER" | "ADMIN" | "PRODUCT_MANAGER";
 export type LocksmithStatus = "pending" | "approved" | "rejected" | "disabled" | null;
 
 export interface LocksmithApplication {

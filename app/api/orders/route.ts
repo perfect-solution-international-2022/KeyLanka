@@ -8,6 +8,7 @@ import { formatOrderNumber } from "@/lib/order-number";
 import { sendMail, renderOrderConfirmationEmail } from "@/lib/mail";
 import { getShippingCost } from "@/lib/queries";
 import { createPolicyAgreementSnapshot } from "@/lib/policy-agreement";
+import { formatVariantLabel } from "@/lib/variant-label";
 
 const createOrderSchema = z.object({
   shippingName: z.string().min(1),
@@ -57,7 +58,11 @@ export async function POST(req: NextRequest) {
 
   const cartItems = await prisma.cartItem.findMany({
     where: { userId },
-    include: { product: true, variant: true, warranty: true },
+    include: {
+      product: true,
+      variant: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
+      warranty: true,
+    },
   });
   if (cartItems.length === 0) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
 
@@ -114,6 +119,7 @@ export async function POST(req: NextRequest) {
               variantId: ci.variantId,
               name: ci.product.name,
               sku: ci.variant?.sku ?? ci.product.sku,
+              variantDetails: formatVariantLabel(ci.variant?.values),
               price: unitPrices[i],
               quantity: ci.quantity,
               warrantyName: ci.warranty?.name ?? "No Warranty",

@@ -1,42 +1,20 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth-server";
-import { getMaintenanceSettings } from "@/lib/queries";
+import { NextRequest, NextResponse } from "next/server";
+import { COOKIE_NAME, verifyToken } from "@/lib/auth-server";
 
-const ALWAYS_ALLOWED_PATHS = ["/coming-soon", "/account/login"];
+export function proxy(request: NextRequest) {
+  const auth = verifyToken(request.cookies.get(COOKIE_NAME)?.value ?? "");
+  if (auth?.role !== "PRODUCT_MANAGER") return NextResponse.next();
 
-export async function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-
-  if (pathname.startsWith("/admin")) {
-    const auth = getAuth(req);
-
-    if (!auth) {
-      const loginUrl = new URL("/account/login", req.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    if (auth.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-
-    return NextResponse.next();
+  const pathname = request.nextUrl.pathname;
+  if (pathname === "/admin" || pathname === "/admin/dashboard") {
+    return NextResponse.redirect(new URL("/admin/products", request.url));
   }
-
-  if (!ALWAYS_ALLOWED_PATHS.includes(pathname)) {
-    const auth = getAuth(req);
-    if (auth?.role !== "ADMIN") {
-      const settings = await getMaintenanceSettings();
-      if (settings.enabled) {
-        return NextResponse.rewrite(new URL("/coming-soon", req.url));
-      }
-    }
+  if (!pathname.startsWith("/admin/products")) {
+    return NextResponse.redirect(new URL("/admin/products", request.url));
   }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
+  matcher: ["/admin/:path*"],
 };

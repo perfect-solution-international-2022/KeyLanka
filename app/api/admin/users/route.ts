@@ -15,7 +15,7 @@ const createUserSchema = z.object({
     .regex(/[A-Z]/)
     .regex(/[0-9]/),
   phone: z.string().optional(),
-  role: z.enum(["BUYER", "ADMIN"]),
+  role: z.enum(["BUYER", "ADMIN", "PRODUCT_MANAGER"]),
 });
 
 export async function GET(req: NextRequest) {

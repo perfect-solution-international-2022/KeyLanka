@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireCatalogManager } from "@/lib/auth-server";
 import {
   createUploadAsset,
   fileMatchesContentType,
@@ -13,7 +13,7 @@ import { recordSecurityEvent } from "@/lib/security-audit";
 import { scanUploadForMalware } from "@/lib/malware-scan";
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin(req);
+  const auth = await requireCatalogManager(req);
   if (!auth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const rateLimit = await checkRateLimit(req, "admin-image-upload", { limit: 60, windowMs: 10 * 60 * 1000 });
   if (rateLimit.limited) return rateLimitResponse(rateLimit.retryAfter);

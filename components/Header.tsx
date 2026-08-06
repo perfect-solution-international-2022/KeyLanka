@@ -118,12 +118,12 @@ export default function Header({ categories }: { categories: Category[] }) {
         </form>
 
         <div className="hidden md:flex items-center gap-3 sm:gap-5 ml-auto text-sm">
-          {auth.user?.role === "ADMIN" && (
+          {(auth.user?.role === "ADMIN" || auth.user?.role === "PRODUCT_MANAGER") && (
             <Link
-              href="/admin/dashboard"
+              href={auth.user.role === "ADMIN" ? "/admin/dashboard" : "/admin/products"}
               className="hidden sm:inline-block text-xs font-medium border border-brand text-brand rounded px-2.5 py-1.5 hover:bg-brand-light"
             >
-              Admin
+              {auth.user.role === "ADMIN" ? "Admin" : "Products"}
             </Link>
           )}
           {auth.user && auth.user.locksmithStatus === "approved" && (
@@ -308,13 +308,13 @@ export default function Header({ categories }: { categories: Category[] }) {
               </Link>
             ))}
 
-            {auth.user?.role === "ADMIN" && (
+            {(auth.user?.role === "ADMIN" || auth.user?.role === "PRODUCT_MANAGER") && (
               <Link
-                href="/admin/dashboard"
+                href={auth.user.role === "ADMIN" ? "/admin/dashboard" : "/admin/products"}
                 onClick={() => setMobileOpen(false)}
                 className="px-4 py-3 text-brand font-medium"
               >
-                Admin Dashboard
+                {auth.user.role === "ADMIN" ? "Admin Dashboard" : "Manage Products"}
               </Link>
             )}
 

@@ -21,7 +21,7 @@ interface OrderDetail {
   shippingPhone: string;
   paymentMethod: string;
   policyAgreement?: { accepted: boolean; acceptedAt: string; policies: { title: string; version: number }[] } | null;
-  items: { id: number; name: string; quantity: number; price: string; warrantyName?: string | null; warrantyDays?: number | null; warrantyPrice?: string }[];
+  items: { id: number; name: string; sku?: string | null; variantDetails?: string | null; quantity: number; price: string; warrantyName?: string | null; warrantyDays?: number | null; warrantyPrice?: string }[];
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -117,6 +117,8 @@ export default function AccountOrderDetailPage() {
             <div key={item.id} className="flex items-center justify-between px-4 py-3 text-sm">
               <div>
                 <div className="font-medium text-gray-900">{item.name}</div>
+                {item.variantDetails && <div className="mt-0.5 text-xs font-medium text-brand">{item.variantDetails}</div>}
+                {item.sku && <div className="text-xs text-gray-500">SKU: {item.sku}</div>}
                 <div className="text-xs text-gray-500">Qty {item.quantity}</div>
                 <div className="text-xs text-gray-500">Warranty: {item.warrantyName ?? "No Warranty"}{item.warrantyDays ? ` (${item.warrantyDays} days)` : ""}</div>
               </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Mail, MapPin, Phone } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -37,15 +38,31 @@ export default function Footer() {
           </ul>
         </div>
 
-        <div>
+        <div className="md:col-span-1">
           <h4 className="text-white font-semibold mb-3">Contact</h4>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li>No 620 High Level Road, Wijerama, Nugegoda</li>
-            <li>Land: <a href="tel:+94112812789" className="hover:text-brand">011 2 812 789</a></li>
-            <li>Mobile: <a href="tel:+94765662666" className="hover:text-brand">076 5 662 666</a></li>
-            <li>Mobile: <a href="tel:+94777777678" className="hover:text-brand">077 7 777 678</a></li>
-            <li><a href="mailto:info@keylanka.lk" className="hover:text-brand">info@keylanka.lk</a></li>
-          </ul>
+          <address className="space-y-3 text-sm not-italic text-gray-400">
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=620+High+Level+Road+Wijerama+Nugegoda"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 hover:text-white"
+            >
+              <MapPin size={17} className="mt-0.5 shrink-0 text-brand-on-dark" />
+              <span>No. 620, High Level Road,<br />Wijerama, Nugegoda</span>
+            </a>
+            <div className="flex items-start gap-3">
+              <Phone size={17} className="mt-0.5 shrink-0 text-brand-on-dark" />
+              <div className="space-y-1">
+                <a href="tel:+94112812789" className="grid grid-cols-[3.5rem_1fr] gap-2 hover:text-white"><span className="text-gray-500">Office</span><span>011 2 812 789</span></a>
+                <a href="tel:+94765662666" className="grid grid-cols-[3.5rem_1fr] gap-2 hover:text-white"><span className="text-gray-500">Mobile</span><span>076 5 662 666</span></a>
+                <a href="tel:+94777777678" className="grid grid-cols-[3.5rem_1fr] gap-2 hover:text-white"><span className="text-gray-500">Mobile</span><span>077 7 777 678</span></a>
+              </div>
+            </div>
+            <a href="mailto:info@keylanka.lk" className="flex items-center gap-3 hover:text-white">
+              <Mail size={17} className="shrink-0 text-brand-on-dark" />
+              <span>info@keylanka.lk</span>
+            </a>
+          </address>
         </div>
       </div>
       <div className="border-t border-gray-800">

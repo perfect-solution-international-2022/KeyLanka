@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const auth = await getVerifiedServerAuth();
   if (!auth) redirect("/account/login?redirect=/admin/dashboard");
-  if (auth.role !== "ADMIN") redirect("/");
+  if (auth.role !== "ADMIN" && auth.role !== "PRODUCT_MANAGER") redirect("/");
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
       <TooltipProvider>{children}</TooltipProvider>
