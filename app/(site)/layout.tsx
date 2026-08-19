@@ -21,7 +21,7 @@ export default async function SiteLayout({
 
   return (
     <Providers>
-    <div className="light flex min-h-screen flex-col bg-background text-foreground pb-16 md:pb-0">
+    <div className="light flex min-h-screen flex-col bg-background text-foreground pb-20 md:pb-0">
       <JsonLd
         data={[
           {
