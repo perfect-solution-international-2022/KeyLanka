@@ -146,14 +146,14 @@ export default async function HomePage() {
           </div>
           <div className="hero-visual relative aspect-[1416/767] w-full md:w-[115%] xl:w-[128%] md:justify-self-end md:-mr-6 xl:-mr-12">
             <picture>
-              <source media="(max-width: 767px)" srcSet="/hero-mobile.webp" />
+              <source media="(max-width: 767px)" srcSet="/hero-mobile.webp" type="image/webp" width="640" height="347" />
               <img
                 src="/hero-desktop.webp"
                 alt="BMW car with smart key"
                 width="1280"
                 height="693"
                 fetchPriority="high"
-                decoding="async"
+                decoding="sync"
                 className="absolute inset-0 h-full w-full object-cover"
               />
             </picture>
@@ -177,7 +177,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="container-page py-12">
+      <section className="defer-render container-page py-12">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
           <Link href="/shop" className="text-brand text-sm font-medium hover:underline">

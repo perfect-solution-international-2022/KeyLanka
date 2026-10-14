@@ -3,8 +3,9 @@ module.exports = {
     {
       name: "keylanka",
       cwd: "/var/www/keylanka",
-      script: "npm",
-      args: "start -- -p 3000",
+      script: "node_modules/next/dist/bin/next",
+      args: "start -p 3000",
+      exec_mode: "fork",
       env: {
         NODE_ENV: "production",
       },
