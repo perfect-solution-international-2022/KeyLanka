@@ -2,6 +2,26 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Configure `DATABASE_URL` in `.env` using `.env.example`, then apply the MySQL
+migrations and generate Prisma Client:
+
+```powershell
+npx.cmd prisma migrate dev
+```
+
+The migration history supports replay into an empty database, including Prisma's
+shadow database. The July 28 reconciliation only removes optional legacy objects;
+earlier migrations already create the product, shipping, and security fields.
+The July 31 restore migration supplies the missing locksmith, payment, wholesale,
+and featured-product schema before the performance indexes are created.
+
+If another database already applied the original July 22 user-role or July 28
+reconciliation migration, these corrected files will differ from its recorded
+checksums. Databases that received the restored fields manually also need a
+schema/history reconciliation before applying the restore migration. Do not reset
+a populated database to clear those warnings; review its schema and migration
+records first. See [Prisma migration troubleshooting](https://www.prisma.io/docs/orm/prisma-migrate/workflows/troubleshooting).
+
 First, run the development server:
 
 ```bash
