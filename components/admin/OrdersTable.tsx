@@ -139,8 +139,13 @@ export function OrdersTable({ orders, initialTab = "pending" }: { orders: AdminO
                     <Badge variant={STATUS_VARIANT[o.status] ?? "secondary"} className="capitalize">
                       {o.status}
                     </Badge>
-                    {o.paymentMethod === "onepay" && !o.paid && o.status !== "cancelled" && (
-                      <Badge variant="destructive">Unpaid</Badge>
+                    {o.paymentMethod === "onepay" && o.status !== "cancelled" && (
+                      <Badge
+                        variant={o.paid ? "outline" : "destructive"}
+                        className={o.paid ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-400" : undefined}
+                      >
+                        {o.paid ? "Paid" : "Unpaid"}
+                      </Badge>
                     )}
                   </div>
                 </TableCell>

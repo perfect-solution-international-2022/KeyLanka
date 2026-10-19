@@ -29,9 +29,20 @@ function OnePayReturnContent() {
 
     async function poll() {
       try {
-        const res = await fetch(`/api/orders/${orderId}`);
+        let res = await fetch(`/api/orders/${orderId}`);
         if (res.ok) {
-          const data = await res.json();
+          let data = await res.json();
+          if (!data.paid && data.paymentMethod === "onepay" && data.transactionId) {
+            try {
+              const verifyRes = await fetch(`/api/orders/${orderId}/verify-payment`, { method: "POST" });
+              if (verifyRes.ok) {
+                const freshRes = await fetch(`/api/orders/${orderId}`);
+                if (freshRes.ok) data = await freshRes.json();
+              }
+            } catch {
+              // Ignore network glitches; next interval will retry
+            }
+          }
           if (!cancelled) setOrder(data);
         }
       } finally {

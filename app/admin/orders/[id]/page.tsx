@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import type { AdminOrder } from "@/lib/admin-api";
 import { formatOrderNumber } from "@/lib/order-number";
 import { formatVariantLabel } from "@/lib/variant-label";
+import { reconcileOnepayOrder } from "@/lib/onepay-payment";
 
 function serialize<T>(data: unknown): T {
   return JSON.parse(JSON.stringify(data));
@@ -12,8 +13,13 @@ function serialize<T>(data: unknown): T {
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const orderId = Number(id);
+  if (!Number.isSafeInteger(orderId)) notFound();
+
+  await reconcileOnepayOrder(prisma, orderId, { source: "admin" }).catch(() => null);
+
   const order = await prisma.order.findUnique({
-    where: { id: Number(id) },
+    where: { id: orderId },
     include: {
       user: { select: { id: true, name: true, email: true } },
       items: {

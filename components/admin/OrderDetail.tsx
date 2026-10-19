@@ -110,7 +110,10 @@ export function OrderDetail({ order: initial }: { order: AdminOrder }) {
           <div className="text-muted-foreground capitalize pt-1 flex items-center gap-2">
             <span>Payment: {order.paymentMethod.replace("_", " ")}</span>
             {order.paymentMethod === "onepay" && (
-              <Badge variant={order.paid ? "outline" : "destructive"} className="normal-case">
+              <Badge
+                variant={order.paid ? "outline" : "destructive"}
+                className={`normal-case ${order.paid ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-400" : ""}`}
+              >
                 {order.paid ? "Paid" : "Unpaid"}
               </Badge>
             )}

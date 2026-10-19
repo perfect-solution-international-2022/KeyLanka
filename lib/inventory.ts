@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { getTransactionStatus, type OnePayTransactionStatus } from "@/lib/onepay";
+import { reconcileOnepayOrder } from "@/lib/onepay-payment";
 
 type TxClient = Prisma.TransactionClient | PrismaClient;
 
@@ -126,6 +127,11 @@ export async function deleteExpiredUnpaidOnepayOrders(
           continue;
         }
         if (verification.paid) {
+          try {
+            await reconcileOnepayOrder(prisma, order.id, { source: "expiry", verifyTransaction });
+          } catch (e) {
+            console.error("Failed to reconcile verified order during expiration check", { orderId: order.id, e });
+          }
           paid += 1;
           continue;
         }

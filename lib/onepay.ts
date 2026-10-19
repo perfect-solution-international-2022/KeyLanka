@@ -70,6 +70,7 @@ export async function createCheckoutLink(params: CreateCheckoutLinkParams): Prom
       Authorization: APP_TOKEN,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
   });
 
   const raw = await res.json().catch(() => null);
@@ -110,24 +111,23 @@ export interface OnePayTransactionStatus {
   paidOn: string | null;
 }
 
-export async function getTransactionStatus(transactionId: string): Promise<OnePayTransactionStatus> {
-  const res = await fetch(`${API_BASE}/v3/transaction/status/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: APP_TOKEN,
-    },
-    body: JSON.stringify({ app_id: APP_ID, onepay_transaction_id: transactionId }),
-    cache: "no-store",
-  });
-  const raw = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(`OnePay transaction verification failed (${res.status})`);
+export function parseTransactionStatus(raw: unknown): OnePayTransactionStatus {
   const envelope = raw as { data?: Record<string, unknown> } | null;
   const data = envelope?.data ?? (raw as Record<string, unknown> | null);
   const verifiedId = data?.ipg_transaction_id ?? data?.onepay_transaction_id;
-  const amount = Number(data?.amount);
+  const amount =
+    typeof data?.amount === "number" || (typeof data?.amount === "string" && data.amount.trim())
+      ? Number(data.amount)
+      : NaN;
   const currency = String(data?.currency ?? "").toUpperCase();
-  if (typeof verifiedId !== "string" || !Number.isFinite(amount) || !currency) {
+  if (
+    typeof verifiedId !== "string" ||
+    !verifiedId ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    !/^[A-Z]{3}$/.test(currency) ||
+    ![true, false, 1, 0, "1", "0"].includes(data?.status as boolean | number | string)
+  ) {
     throw new Error("OnePay returned an incomplete verification response");
   }
   return {
@@ -137,4 +137,20 @@ export async function getTransactionStatus(transactionId: string): Promise<OnePa
     currency,
     paidOn: typeof data?.paid_on === "string" ? data.paid_on : null,
   };
+}
+
+export async function getTransactionStatus(transactionId: string): Promise<OnePayTransactionStatus> {
+  const res = await fetch(`${API_BASE}/v3/transaction/status/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: APP_TOKEN,
+    },
+    body: JSON.stringify({ app_id: APP_ID, onepay_transaction_id: transactionId }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`OnePay transaction verification failed (${res.status})`);
+  return parseTransactionStatus(raw);
 }

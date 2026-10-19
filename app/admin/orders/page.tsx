@@ -2,6 +2,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { OrdersTable } from "@/components/admin/OrdersTable";
 import { prisma } from "@/lib/prisma";
 import type { AdminOrder } from "@/lib/admin-api";
+import { reconcileUnverifiedOnepayOrders } from "@/lib/onepay-payment";
 
 function serialize<T>(data: unknown): T {
   return JSON.parse(JSON.stringify(data));
@@ -9,6 +10,7 @@ function serialize<T>(data: unknown): T {
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;
+  await reconcileUnverifiedOnepayOrders(prisma).catch(() => null);
   const orders = await prisma.order.findMany({
     include: { user: { select: { id: true, name: true, email: true } }, items: true },
     orderBy: { createdAt: "desc" },
