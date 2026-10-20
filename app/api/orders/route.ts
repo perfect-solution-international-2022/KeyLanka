@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
     if (user) {
       await sendMail({
         to: user.email,
+        bcc: "info@keylanka.lk",
         subject: `Order Confirmed — ${formatOrderNumber(order.id)}`,
         html: renderOrderConfirmationEmail({
           name: user.name,

@@ -30,6 +30,7 @@ async function sendConfirmation(db: PrismaClient, order: Order) {
   if (!user) return;
   await sendMail({
     to: user.email,
+    bcc: "info@keylanka.lk",
     subject: `Order Confirmed — ${formatOrderNumber(order.id)}`,
     html: renderOrderConfirmationEmail({
       name: user.name,
