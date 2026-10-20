@@ -144,6 +144,7 @@ export async function POST(req: NextRequest) {
         html: renderOrderConfirmationEmail({
           name: user.name,
           orderNumber: formatOrderNumber(order.id),
+          orderId: order.id,
           items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price.toString() })),
           total: order.total.toString(),
           shippingAddress: `${order.shippingLine1}, ${order.shippingCity}${order.shippingDistrict ? `, ${order.shippingDistrict}` : ""}`,

@@ -34,6 +34,7 @@ async function sendConfirmation(db: PrismaClient, order: Order) {
     html: renderOrderConfirmationEmail({
       name: user.name,
       orderNumber: formatOrderNumber(order.id),
+      orderId: order.id,
       items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price.toString() })),
       total: order.total.toString(),
       shippingAddress: `${order.shippingLine1}, ${order.shippingCity}${
